@@ -3,6 +3,7 @@ from src.db import (
     query_features,
     query_overview,
     query_sessions,
+    query_tool_usage,
     upsert_session,
 )
 from src.scanner import Prompt, Session
@@ -79,6 +80,71 @@ def test_query_features_aggregates_by_feature(tmp_path):
     by_name = {f["name"]: f for f in features}
     assert by_name["foo"]["total_tokens"] >= 3000
     assert by_name["bar"]["total_tokens"] >= 500
+
+
+def test_query_sessions_orders_by_started_at_desc(tmp_path):
+    """Sessions tab orders newest-started first (matches the column user sees).
+
+    Regression: v0.4.0 ordered by source_mtime DESC, which made started_at
+    column appear to bounce dates when long sessions had mtime updated past
+    later-started sessions. Issue #1 reproduces the perceived 'ASC bug'.
+    """
+    db = tmp_path / "test.sqlite"
+    init_db(db)
+    s_old_started_recent_mtime = _make_session("s_old", mtime=2000.0)
+    s_old_started_recent_mtime.started_at = "2026-04-01T10:00:00Z"
+    s_new_started_old_mtime = _make_session("s_new", mtime=1000.0)
+    s_new_started_old_mtime.started_at = "2026-05-02T10:00:00Z"
+    upsert_session(db, s_old_started_recent_mtime, feature="foo")
+    upsert_session(db, s_new_started_old_mtime, feature="foo")
+    sessions = query_sessions(db)
+    assert sessions[0]["session_id"] == "s_new", "newest started_at must be first"
+    assert sessions[1]["session_id"] == "s_old"
+
+
+def test_query_sessions_uses_mtime_as_tiebreaker(tmp_path):
+    """When two sessions started at the same instant, mtime DESC breaks the tie."""
+    db = tmp_path / "test.sqlite"
+    init_db(db)
+    s_lower_mtime = _make_session("s_lower", mtime=1000.0)
+    s_higher_mtime = _make_session("s_higher", mtime=2000.0)
+    upsert_session(db, s_lower_mtime, feature="foo")
+    upsert_session(db, s_higher_mtime, feature="foo")
+    sessions = query_sessions(db)
+    assert sessions[0]["session_id"] == "s_higher"
+    assert sessions[1]["session_id"] == "s_lower"
+
+
+def test_query_tool_usage_aggregates_across_sessions(tmp_path):
+    """tool_uses table is upserted from session.tool_counts and aggregated
+    by query_tool_usage with standard filters."""
+    db = tmp_path / "test.sqlite"
+    init_db(db)
+    s1 = _make_session("s1")
+    s1.tool_counts = {"Bash": 5, "Read": 3}
+    s2 = _make_session("s2")
+    s2.tool_counts = {"Bash": 2, "Edit": 1}
+    upsert_session(db, s1, feature="foo")
+    upsert_session(db, s2, feature="foo")
+    rows = query_tool_usage(db)
+    by_name = {r["tool_name"]: r for r in rows}
+    assert by_name["Bash"]["total_count"] == 7
+    assert by_name["Bash"]["sessions"] == 2
+    assert by_name["Read"]["total_count"] == 3
+    assert by_name["Read"]["sessions"] == 1
+    assert by_name["Edit"]["total_count"] == 1
+
+
+def test_query_tool_usage_idempotent_on_re_upsert(tmp_path):
+    """Re-upserting a session must replace tool_uses, not double-count."""
+    db = tmp_path / "test.sqlite"
+    init_db(db)
+    s1 = _make_session("s1")
+    s1.tool_counts = {"Bash": 5}
+    upsert_session(db, s1, feature="foo")
+    upsert_session(db, s1, feature="foo")  # second upsert
+    rows = query_tool_usage(db)
+    assert rows[0]["total_count"] == 5  # not 10
 
 
 def test_query_overview_returns_totals(tmp_path):

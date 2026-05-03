@@ -52,6 +52,15 @@ CREATE TABLE IF NOT EXISTS features (
   pr_status      TEXT,
   PRIMARY KEY (project, name)
 );
+
+CREATE TABLE IF NOT EXISTS tool_uses (
+  session_id   TEXT NOT NULL,
+  tool_name    TEXT NOT NULL,
+  count        INTEGER NOT NULL,
+  PRIMARY KEY (session_id, tool_name),
+  FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_tool_uses_name ON tool_uses(tool_name);
 """
 
 # A session is "active" if its source JSONL was modified within this many
@@ -128,6 +137,18 @@ def upsert_session(
                 session.source_mtime,
             ),
         )
+
+        conn.execute(
+            "DELETE FROM tool_uses WHERE session_id = ?", (session.session_id,)
+        )
+        for tool_name, count in session.tool_counts.items():
+            conn.execute(
+                """
+                INSERT INTO tool_uses (session_id, tool_name, count)
+                VALUES (?, ?, ?)
+                """,
+                (session.session_id, tool_name, count),
+            )
 
         for p in session.prompts:
             if not p.message_id:
@@ -213,13 +234,18 @@ def delete_sessions_except(db_path: Path, keep_ids: set[str]) -> int:
         if not keep_ids:
             cursor = conn.execute("DELETE FROM sessions")
             conn.execute("DELETE FROM prompts")
+            conn.execute("DELETE FROM tool_uses")
             conn.execute("DELETE FROM features")
             return cursor.rowcount
         placeholders = ",".join("?" for _ in keep_ids)
         ids_tuple = tuple(keep_ids)
-        # Delete prompts of stale sessions first (FK ref)
+        # Delete prompts and tool_uses of stale sessions first (FK ref)
         conn.execute(
             f"DELETE FROM prompts WHERE session_id NOT IN ({placeholders})",
+            ids_tuple,
+        )
+        conn.execute(
+            f"DELETE FROM tool_uses WHERE session_id NOT IN ({placeholders})",
             ids_tuple,
         )
         cursor = conn.execute(
@@ -319,6 +345,42 @@ def query_overview(
         return result
 
 
+def query_tool_usage(
+    db_path: Path,
+    project: str | None = None,
+    feature: str | None = None,
+    model: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+    limit: int = 20,
+) -> list[dict]:
+    """Aggregate tool_use counts across sessions matching the filters.
+
+    Returns rows of {tool_name, total_count, sessions} ordered by total_count DESC.
+    """
+    where, params = _filter_clause(
+        project=project, feature=feature, model=model, since=since, until=until
+    )
+    join_where = where.replace("WHERE ", "WHERE ", 1) if where else ""
+    params.append(limit)
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            f"""
+            SELECT t.tool_name AS tool_name,
+                   SUM(t.count) AS total_count,
+                   COUNT(DISTINCT t.session_id) AS sessions
+            FROM tool_uses t
+            INNER JOIN sessions s ON s.id = t.session_id
+            {join_where}
+            GROUP BY t.tool_name
+            ORDER BY total_count DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
 def query_features(
     db_path: Path,
     project: str | None = None,
@@ -400,7 +462,7 @@ def query_sessions(
                    cost_usd, source_mtime
             FROM sessions
             {where}
-            ORDER BY COALESCE(source_mtime, 0) DESC, started_at DESC
+            ORDER BY started_at DESC, COALESCE(source_mtime, 0) DESC
             LIMIT ?
             """,
             params,
