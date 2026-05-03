@@ -12,7 +12,7 @@ from src.db import delete_sessions_except, init_db, upsert_session
 from src.scanner import parse_jsonl
 from src.server import serve
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 
 def scan_all(cfg: dict) -> int:

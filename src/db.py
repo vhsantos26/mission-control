@@ -8,32 +8,36 @@ from src.scanner import Session
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS sessions (
-  id              TEXT PRIMARY KEY,
-  project         TEXT NOT NULL,
-  feature         TEXT,
-  branch          TEXT,
-  worktree_path   TEXT,
-  started_at      TEXT,
-  ended_at        TEXT,
-  model           TEXT,
-  input_tokens    INTEGER DEFAULT 0,
-  output_tokens   INTEGER DEFAULT 0,
-  cache_tokens    INTEGER DEFAULT 0,
-  cost_usd        REAL DEFAULT 0,
-  source_path     TEXT NOT NULL
+  id                    TEXT PRIMARY KEY,
+  project               TEXT NOT NULL,
+  feature               TEXT,
+  branch                TEXT,
+  worktree_path         TEXT,
+  started_at            TEXT,
+  ended_at              TEXT,
+  model                 TEXT,
+  input_tokens          INTEGER DEFAULT 0,
+  output_tokens         INTEGER DEFAULT 0,
+  cache_read_tokens     INTEGER DEFAULT 0,
+  cache_create_tokens   INTEGER DEFAULT 0,
+  cost_usd              REAL DEFAULT 0,
+  source_path           TEXT NOT NULL,
+  source_mtime          REAL
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_project_feature ON sessions(project, feature);
+CREATE INDEX IF NOT EXISTS idx_sessions_model ON sessions(model);
 
 CREATE TABLE IF NOT EXISTS prompts (
-  id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  session_id      TEXT NOT NULL,
-  ts              TEXT NOT NULL,
-  role            TEXT NOT NULL,
-  message_id      TEXT UNIQUE,
-  input_tokens    INTEGER DEFAULT 0,
-  output_tokens   INTEGER DEFAULT 0,
-  cache_tokens    INTEGER DEFAULT 0,
-  cost_usd        REAL DEFAULT 0,
+  id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id            TEXT NOT NULL,
+  ts                    TEXT NOT NULL,
+  role                  TEXT NOT NULL,
+  message_id            TEXT UNIQUE,
+  input_tokens          INTEGER DEFAULT 0,
+  output_tokens         INTEGER DEFAULT 0,
+  cache_read_tokens     INTEGER DEFAULT 0,
+  cache_create_tokens   INTEGER DEFAULT 0,
+  cost_usd              REAL DEFAULT 0,
   FOREIGN KEY (session_id) REFERENCES sessions(id)
 );
 
@@ -49,6 +53,10 @@ CREATE TABLE IF NOT EXISTS features (
   PRIMARY KEY (project, name)
 );
 """
+
+# A session is "active" if its source JSONL was modified within this many
+# seconds. Heuristic — Claude Code keeps writing while you interact.
+ACTIVE_THRESHOLD_SECONDS = 5 * 60
 
 
 def _connect(db_path: Path) -> sqlite3.Connection:
@@ -75,7 +83,8 @@ def upsert_session(
         model=session.model or "",
         input_tokens=session.input_tokens,
         output_tokens=session.output_tokens,
-        cache_tokens=session.cache_tokens,
+        cache_read_tokens=session.cache_read_tokens,
+        cache_create_tokens=session.cache_create_tokens,
         plan=plan,
     )
     with _connect(db_path) as conn:
@@ -84,8 +93,9 @@ def upsert_session(
             INSERT INTO sessions (
                 id, project, feature, branch, worktree_path,
                 started_at, ended_at, model,
-                input_tokens, output_tokens, cache_tokens, cost_usd, source_path
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                input_tokens, output_tokens, cache_read_tokens, cache_create_tokens,
+                cost_usd, source_path, source_mtime
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 project = excluded.project,
                 feature = excluded.feature,
@@ -95,8 +105,10 @@ def upsert_session(
                 model = excluded.model,
                 input_tokens = excluded.input_tokens,
                 output_tokens = excluded.output_tokens,
-                cache_tokens = excluded.cache_tokens,
-                cost_usd = excluded.cost_usd
+                cache_read_tokens = excluded.cache_read_tokens,
+                cache_create_tokens = excluded.cache_create_tokens,
+                cost_usd = excluded.cost_usd,
+                source_mtime = excluded.source_mtime
             """,
             (
                 session.session_id,
@@ -109,9 +121,11 @@ def upsert_session(
                 session.model,
                 session.input_tokens,
                 session.output_tokens,
-                session.cache_tokens,
+                session.cache_read_tokens,
+                session.cache_create_tokens,
                 cost,
                 session.source_path,
+                session.source_mtime,
             ),
         )
 
@@ -122,15 +136,17 @@ def upsert_session(
                 model=session.model or "",
                 input_tokens=p.input_tokens,
                 output_tokens=p.output_tokens,
-                cache_tokens=p.cache_tokens,
+                cache_read_tokens=p.cache_read_tokens,
+                cache_create_tokens=p.cache_create_tokens,
                 plan=plan,
             )
             conn.execute(
                 """
                 INSERT OR IGNORE INTO prompts (
                     session_id, ts, role, message_id,
-                    input_tokens, output_tokens, cache_tokens, cost_usd
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    input_tokens, output_tokens, cache_read_tokens, cache_create_tokens,
+                    cost_usd
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     session.session_id,
@@ -139,7 +155,8 @@ def upsert_session(
                     p.message_id,
                     p.input_tokens,
                     p.output_tokens,
-                    p.cache_tokens,
+                    p.cache_read_tokens,
+                    p.cache_create_tokens,
                     p_cost,
                 ),
             )
@@ -155,7 +172,7 @@ def _recompute_feature(
         SELECT
             MIN(started_at) AS first_seen,
             MAX(ended_at) AS last_seen,
-            SUM(input_tokens + output_tokens + cache_tokens) AS total_tokens,
+            SUM(input_tokens + output_tokens + cache_read_tokens + cache_create_tokens) AS total_tokens,
             SUM(cost_usd) AS total_cost
         FROM sessions
         WHERE project = ? AND feature = ?
@@ -220,7 +237,7 @@ def delete_sessions_except(db_path: Path, keep_ids: set[str]) -> int:
                 COALESCE(feature, '_no-feature'),
                 MIN(started_at),
                 MAX(ended_at),
-                COALESCE(SUM(input_tokens + output_tokens + cache_tokens), 0),
+                COALESCE(SUM(input_tokens + output_tokens + cache_read_tokens + cache_create_tokens), 0),
                 COALESCE(SUM(cost_usd), 0)
             FROM sessions
             GROUP BY project, feature
@@ -232,10 +249,15 @@ def delete_sessions_except(db_path: Path, keep_ids: set[str]) -> int:
 def _filter_clause(
     project: str | None = None,
     feature: str | None = None,
+    model: str | None = None,
     since: str | None = None,
     until: str | None = None,
 ) -> tuple[str, list]:
-    """Build WHERE clause + params for common filters."""
+    """Build WHERE clause + params for common filters.
+
+    ``model`` matches by family substring: passing "opus" matches "claude-opus-4-7"
+    and "claude-opus-4-6" alike.
+    """
     conditions: list[str] = []
     params: list = []
     if project:
@@ -244,6 +266,9 @@ def _filter_clause(
     if feature:
         conditions.append("(feature = ? OR feature LIKE ?)")
         params.extend([feature, f"%{feature}%"])
+    if model:
+        conditions.append("model LIKE ?")
+        params.append(f"%{model}%")
     if since:
         conditions.append("started_at >= ?")
         params.append(since)
@@ -257,10 +282,13 @@ def _filter_clause(
 def query_overview(
     db_path: Path,
     project: str | None = None,
+    model: str | None = None,
     since: str | None = None,
     until: str | None = None,
 ) -> dict:
-    where, params = _filter_clause(project=project, since=since, until=until)
+    where, params = _filter_clause(
+        project=project, model=model, since=since, until=until
+    )
     with _connect(db_path) as conn:
         row = conn.execute(
             f"""
@@ -268,26 +296,44 @@ def query_overview(
                 COUNT(*) AS total_sessions,
                 COALESCE(SUM(input_tokens), 0) AS total_input_tokens,
                 COALESCE(SUM(output_tokens), 0) AS total_output_tokens,
-                COALESCE(SUM(cache_tokens), 0) AS total_cache_tokens,
+                COALESCE(SUM(cache_read_tokens), 0) AS total_cache_read_tokens,
+                COALESCE(SUM(cache_create_tokens), 0) AS total_cache_create_tokens,
+                COALESCE(SUM(cache_read_tokens + cache_create_tokens), 0) AS total_cache_tokens,
                 COALESCE(SUM(cost_usd), 0) AS total_cost
             FROM sessions
             {where}
             """,
             params,
         ).fetchone()
-        return dict(row) if row else {}
+        # Also count total prompts (turns) within the same filter
+        prompts_row = conn.execute(
+            f"""
+            SELECT COUNT(*) AS total_turns
+            FROM prompts p
+            WHERE p.session_id IN (SELECT id FROM sessions {where})
+            """,
+            params,
+        ).fetchone()
+        result = dict(row) if row else {}
+        result["total_turns"] = prompts_row["total_turns"] if prompts_row else 0
+        return result
 
 
 def query_features(
     db_path: Path,
     project: str | None = None,
+    model: str | None = None,
     since: str | None = None,
     until: str | None = None,
 ) -> list[dict]:
-    """Query features table, optionally aggregated only across sessions in date range."""
-    if since or until:
-        # Recompute aggregations on the fly when date filter is in play
-        where, params = _filter_clause(project=project, since=since, until=until)
+    """Query features table, optionally aggregated only across sessions in date range or by model."""
+    # When any filter that the pre-aggregated table doesn't support is in play,
+    # recompute on the fly from sessions.
+    needs_recompute = bool(since or until or model)
+    if needs_recompute:
+        where, params = _filter_clause(
+            project=project, model=model, since=since, until=until
+        )
         with _connect(db_path) as conn:
             rows = conn.execute(
                 f"""
@@ -296,7 +342,7 @@ def query_features(
                     COALESCE(feature, '_no-feature') AS name,
                     MIN(started_at) AS first_seen,
                     MAX(ended_at) AS last_seen,
-                    SUM(input_tokens + output_tokens + cache_tokens) AS total_tokens,
+                    SUM(input_tokens + output_tokens + cache_read_tokens + cache_create_tokens) AS total_tokens,
                     SUM(cost_usd) AS total_cost
                 FROM sessions
                 {where}
@@ -332,26 +378,42 @@ def query_sessions(
     limit: int = 100,
     project: str | None = None,
     feature: str | None = None,
+    model: str | None = None,
     since: str | None = None,
     until: str | None = None,
 ) -> list[dict]:
+    """Return sessions with an `is_active` flag (true if mtime within threshold)."""
+    import time
+
     where, params = _filter_clause(
-        project=project, feature=feature, since=since, until=until
+        project=project, feature=feature, model=model, since=since, until=until
     )
     params.append(limit)
+    now = time.time()
     with _connect(db_path) as conn:
         rows = conn.execute(
             f"""
             SELECT id AS session_id, project, feature, branch, started_at, ended_at,
-                   model, input_tokens, output_tokens, cache_tokens, cost_usd
+                   model, input_tokens, output_tokens,
+                   cache_read_tokens, cache_create_tokens,
+                   (cache_read_tokens + cache_create_tokens) AS cache_tokens,
+                   cost_usd, source_mtime
             FROM sessions
             {where}
-            ORDER BY started_at DESC
+            ORDER BY COALESCE(source_mtime, 0) DESC, started_at DESC
             LIMIT ?
             """,
             params,
         ).fetchall()
-        return [dict(r) for r in rows]
+        result = []
+        for r in rows:
+            d = dict(r)
+            mtime = d.get("source_mtime")
+            d["is_active"] = bool(
+                mtime and (now - mtime) <= ACTIVE_THRESHOLD_SECONDS
+            )
+            result.append(d)
+        return result
 
 
 def query_session_prompts(db_path: Path, session_id: str) -> list[dict]:
@@ -360,7 +422,9 @@ def query_session_prompts(db_path: Path, session_id: str) -> list[dict]:
         rows = conn.execute(
             """
             SELECT ts, role, message_id, input_tokens, output_tokens,
-                   cache_tokens, cost_usd
+                   cache_read_tokens, cache_create_tokens,
+                   (cache_read_tokens + cache_create_tokens) AS cache_tokens,
+                   cost_usd
             FROM prompts
             WHERE session_id = ?
             ORDER BY ts ASC
@@ -374,13 +438,17 @@ def query_daily_cost(
     db_path: Path,
     days: int = 30,
     project: str | None = None,
+    model: str | None = None,
 ) -> list[dict]:
-    """Daily cost rollup for the last N days, optionally filtered by project."""
+    """Daily breakdown for the last N days. Returns input/output/cache_create/cache_read split per day."""
     where_parts = ["started_at IS NOT NULL"]
     params: list = []
     if project:
         where_parts.append("project = ?")
         params.append(project)
+    if model:
+        where_parts.append("model LIKE ?")
+        params.append(f"%{model}%")
     where = "WHERE " + " AND ".join(where_parts)
     with _connect(db_path) as conn:
         rows = conn.execute(
@@ -388,7 +456,10 @@ def query_daily_cost(
             SELECT
                 substr(started_at, 1, 10) AS day,
                 COUNT(*) AS sessions,
-                SUM(input_tokens + output_tokens + cache_tokens) AS tokens,
+                SUM(input_tokens) AS input_tokens,
+                SUM(output_tokens) AS output_tokens,
+                SUM(cache_create_tokens) AS cache_create_tokens,
+                SUM(cache_read_tokens) AS cache_read_tokens,
                 SUM(cost_usd) AS cost
             FROM sessions
             {where}
@@ -401,6 +472,64 @@ def query_daily_cost(
         return list(reversed([dict(r) for r in rows]))
 
 
+def query_tokens_by_project(
+    db_path: Path,
+    model: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+) -> list[dict]:
+    """Per-project totals for stacked input/output bar chart."""
+    where, params = _filter_clause(model=model, since=since, until=until)
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            f"""
+            SELECT
+                project,
+                SUM(input_tokens) AS input_tokens,
+                SUM(output_tokens) AS output_tokens,
+                SUM(cache_create_tokens) AS cache_create_tokens,
+                SUM(cache_read_tokens) AS cache_read_tokens,
+                SUM(cost_usd) AS cost
+            FROM sessions
+            {where}
+            GROUP BY project
+            ORDER BY cost DESC
+            """,
+            params,
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def query_by_model(
+    db_path: Path,
+    project: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+) -> list[dict]:
+    """Per-model totals for the donut chart."""
+    where, params = _filter_clause(project=project, since=since, until=until)
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            f"""
+            SELECT
+                COALESCE(model, '_unknown') AS model,
+                COUNT(*) AS sessions,
+                SUM(input_tokens) AS input_tokens,
+                SUM(output_tokens) AS output_tokens,
+                SUM(cache_create_tokens) AS cache_create_tokens,
+                SUM(cache_read_tokens) AS cache_read_tokens,
+                SUM(input_tokens + output_tokens + cache_read_tokens + cache_create_tokens) AS total_tokens,
+                SUM(cost_usd) AS cost
+            FROM sessions
+            {where}
+            GROUP BY model
+            ORDER BY cost DESC
+            """,
+            params,
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
 def query_distinct_projects(db_path: Path) -> list[str]:
     """Return sorted list of distinct project names — useful to populate filter dropdown."""
     with _connect(db_path) as conn:
@@ -408,3 +537,12 @@ def query_distinct_projects(db_path: Path) -> list[str]:
             "SELECT DISTINCT project FROM sessions ORDER BY project"
         ).fetchall()
         return [r["project"] for r in rows]
+
+
+def query_distinct_models(db_path: Path) -> list[str]:
+    """Return sorted list of distinct model names with usage."""
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT model FROM sessions WHERE model IS NOT NULL ORDER BY model"
+        ).fetchall()
+        return [r["model"] for r in rows]

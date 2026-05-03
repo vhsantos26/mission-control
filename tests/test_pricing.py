@@ -55,18 +55,45 @@ def test_unknown_model_returns_zero():
     assert cost == 0.0
 
 
-def test_cache_tokens_priced_lower():
-    no_cache = cost_for_session(
+def test_cache_read_is_cheap():
+    cost = cost_for_session(
+        model="claude-sonnet-4-6",
+        input_tokens=0,
+        output_tokens=0,
+        cache_read_tokens=1_000_000,
+    )
+    # Sonnet cache read: $0.30/M
+    assert 0.25 < cost < 0.35
+
+
+def test_cache_create_is_more_than_input():
+    create_cost = cost_for_session(
+        model="claude-sonnet-4-6",
+        input_tokens=0,
+        output_tokens=0,
+        cache_create_tokens=1_000_000,
+    )
+    input_cost = cost_for_session(
         model="claude-sonnet-4-6",
         input_tokens=1_000_000,
         output_tokens=0,
-        cache_tokens=0,
     )
-    with_cache = cost_for_session(
+    # Cache create is ~1.25× input
+    assert create_cost > input_cost
+    assert create_cost < input_cost * 1.5
+
+
+def test_legacy_cache_tokens_arg_treated_as_cache_read():
+    legacy = cost_for_session(
         model="claude-sonnet-4-6",
         input_tokens=0,
         output_tokens=0,
         cache_tokens=1_000_000,
     )
-    # Cache reads are about 10x cheaper than fresh input
-    assert with_cache < no_cache / 5
+    explicit = cost_for_session(
+        model="claude-sonnet-4-6",
+        input_tokens=0,
+        output_tokens=0,
+        cache_read_tokens=1_000_000,
+    )
+    assert legacy == explicit
