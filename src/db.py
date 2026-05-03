@@ -87,6 +87,7 @@ def upsert_session(
                 input_tokens, output_tokens, cache_tokens, cost_usd, source_path
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
+                project = excluded.project,
                 feature = excluded.feature,
                 branch = excluded.branch,
                 worktree_path = excluded.worktree_path,
@@ -182,6 +183,50 @@ def _recompute_feature(
             float(row["total_cost"] or 0),
         ),
     )
+
+
+def delete_sessions_except(db_path: Path, keep_ids: set[str]) -> int:
+    """Delete all sessions whose ID is not in keep_ids. Returns count deleted.
+
+    Use this after a full scan pass to drop stale rows from previous-version
+    scans (e.g., sessions that no longer resolve to a valid project, or rows
+    with old mangled project names).
+    """
+    with _connect(db_path) as conn:
+        if not keep_ids:
+            cursor = conn.execute("DELETE FROM sessions")
+            conn.execute("DELETE FROM prompts")
+            conn.execute("DELETE FROM features")
+            return cursor.rowcount
+        placeholders = ",".join("?" for _ in keep_ids)
+        ids_tuple = tuple(keep_ids)
+        # Delete prompts of stale sessions first (FK ref)
+        conn.execute(
+            f"DELETE FROM prompts WHERE session_id NOT IN ({placeholders})",
+            ids_tuple,
+        )
+        cursor = conn.execute(
+            f"DELETE FROM sessions WHERE id NOT IN ({placeholders})",
+            ids_tuple,
+        )
+        deleted = cursor.rowcount
+        # Recompute features table from scratch (cheap) so it stays in sync
+        conn.execute("DELETE FROM features")
+        conn.execute(
+            """
+            INSERT INTO features (project, name, first_seen, last_seen, total_tokens, total_cost)
+            SELECT
+                project,
+                COALESCE(feature, '_no-feature'),
+                MIN(started_at),
+                MAX(ended_at),
+                COALESCE(SUM(input_tokens + output_tokens + cache_tokens), 0),
+                COALESCE(SUM(cost_usd), 0)
+            FROM sessions
+            GROUP BY project, feature
+            """
+        )
+        return deleted
 
 
 def query_overview(db_path: Path) -> dict:
