@@ -7,39 +7,26 @@ import webbrowser
 from pathlib import Path
 
 from src.config import DB_FILE, load
-from src.correlator import branch_for_worktree, feature_from_branch, find_pr_for_branch
+from src.correlator import feature_from_branch
 from src.db import init_db, upsert_session
 from src.scanner import parse_jsonl
 from src.server import serve
 
-VERSION = "0.1.0"
-
-
-def _resolve_branch_and_feature(
-    project: str, worktree_root: Path
-) -> tuple[str | None, str]:
-    """Best-effort: find a worktree dir matching the project and read its branch.
-
-    Falls back to (None, "_no-feature") when no match.
-    """
-    # Project string looks like "Users/hugo/Developer/licitai" — pick last segment
-    project_name = project.rstrip("/").split("/")[-1] or project
-    candidate = worktree_root / project_name
-    if candidate.exists():
-        branch = branch_for_worktree(candidate)
-        if branch:
-            return branch, feature_from_branch(branch)
-    return None, "_no-feature"
+VERSION = "0.2.0"
 
 
 def scan_all(cfg: dict) -> int:
-    """Scan all JSONL transcripts and upsert into the DB. Returns count of sessions touched."""
+    """Scan all JSONL transcripts and upsert into the DB. Returns count of sessions touched.
+
+    Feature is derived from each session's *dominant gitBranch* — the branch most
+    frequently recorded across the session's records. This handles long sessions
+    that switch worktrees, and works retroactively without filesystem lookup.
+    """
     root = Path(cfg["claude_projects_dir"])
     if not root.exists():
         print(f"[warn] claude_projects_dir does not exist: {root}")
         return 0
 
-    worktree_root = Path(cfg["worktree_root"])
     plan = cfg.get("pricing_plan", "api")
     count = 0
 
@@ -55,15 +42,14 @@ def scan_all(cfg: dict) -> int:
             if not sessions:
                 continue
             s = sessions[0]
-            branch, feature = _resolve_branch_and_feature(s.project, worktree_root)
+            branch = s.dominant_branch
+            feature = feature_from_branch(branch) if branch else "_no-feature"
             upsert_session(
                 DB_FILE,
                 s,
                 feature=feature,
                 branch=branch,
-                worktree_path=str(worktree_root / s.project.split("/")[-1])
-                if branch
-                else None,
+                worktree_path=s.dominant_cwd,
                 plan=plan,
             )
             count += 1

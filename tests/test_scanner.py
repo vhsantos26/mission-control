@@ -66,3 +66,47 @@ def test_returns_empty_list_for_no_assistant_messages(tmp_path):
     )
     sessions = parse_jsonl(fixture)
     assert sessions == []
+
+
+def test_dominant_branch_picks_most_frequent():
+    sessions = parse_jsonl(FIXTURE)
+    s = sessions[0]
+    # Fixture has 5 records with feat/multi-agent-setup, 1 with staging
+    assert s.dominant_branch == "feat/multi-agent-setup"
+
+
+def test_dominant_cwd_picks_most_frequent():
+    sessions = parse_jsonl(FIXTURE)
+    s = sessions[0]
+    assert s.dominant_cwd == (
+        "/Users/hugo/Developer/licitai/.worktrees/multi-agent-setup"
+    )
+
+
+def test_dominant_branch_is_none_when_no_branches(tmp_path):
+    import json
+    fixture = tmp_path / "no-branch.jsonl"
+    fixture.write_text(
+        json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "id": "x",
+                    "model": "claude-sonnet-4-6",
+                    "usage": {"input_tokens": 1, "output_tokens": 1},
+                },
+                "timestamp": "2026-05-03T10:00:00Z",
+            }
+        )
+        + "\n"
+    )
+    sessions = parse_jsonl(fixture)
+    assert sessions[0].dominant_branch is None
+    assert sessions[0].dominant_cwd is None
+
+
+def test_branch_counts_track_per_record():
+    sessions = parse_jsonl(FIXTURE)
+    s = sessions[0]
+    assert s.branch_counts.get("feat/multi-agent-setup", 0) >= 4
+    assert s.branch_counts.get("staging", 0) >= 1
