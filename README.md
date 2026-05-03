@@ -89,7 +89,9 @@ python3 -m pytest tests/ -v
 
 ## Changelog
 
-- **v0.2.0** — Feature detection via `gitBranch` in JSONL records (every record carries it). Picks the *dominant* branch (most frequent across the session's records), correctly handling sessions that switch worktrees. Removed filesystem worktree lookup. Validated: 61 distinct features detected from 828 sessions on a real Example App usage history.
+- **v0.3.0** — Filters (date range, project) in the header, applied to all tabs. Daily cost bar chart and project donut on Overview (ECharts). Drill-down: click a session in the Sessions tab to expand its per-prompt cost. Projects tab shows aggregate per-project with % of total. Feature search box filters the Features table.
+- **v0.2.1** — Canonical project resolution via `git rev-parse --show-toplevel`: preserves hyphens (`acme-tool` no longer becomes `acme/tool`), collapses `.worktrees/X` and `.worktree/X` to the parent repo, filters out non-repo paths (`~/.claude-mem` etc). Full sync on every scan: stale rows from older versions are deleted. UPSERT now updates `project` column on conflict (was excluded). Validated: 175 sessions across 6 clean projects (from 828 across 13 mangled names).
+- **v0.2.0** — Feature detection via `gitBranch` in JSONL records (every record carries it). Picks the *dominant* branch (most frequent across the session's records), correctly handling sessions that switch worktrees. Removed filesystem worktree lookup.
 - **v0.1.0** — Initial release: scanner + correlator + pricing + SQLite + HTTP server + UI. Feature detection v1 used filesystem worktree lookup (only resolved sessions in the main worktree).
 
 ## License

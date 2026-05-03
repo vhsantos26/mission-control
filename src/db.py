@@ -229,10 +229,41 @@ def delete_sessions_except(db_path: Path, keep_ids: set[str]) -> int:
         return deleted
 
 
-def query_overview(db_path: Path) -> dict:
+def _filter_clause(
+    project: str | None = None,
+    feature: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+) -> tuple[str, list]:
+    """Build WHERE clause + params for common filters."""
+    conditions: list[str] = []
+    params: list = []
+    if project:
+        conditions.append("project = ?")
+        params.append(project)
+    if feature:
+        conditions.append("(feature = ? OR feature LIKE ?)")
+        params.extend([feature, f"%{feature}%"])
+    if since:
+        conditions.append("started_at >= ?")
+        params.append(since)
+    if until:
+        conditions.append("started_at <= ?")
+        params.append(until)
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    return where, params
+
+
+def query_overview(
+    db_path: Path,
+    project: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+) -> dict:
+    where, params = _filter_clause(project=project, since=since, until=until)
     with _connect(db_path) as conn:
         row = conn.execute(
-            """
+            f"""
             SELECT
                 COUNT(*) AS total_sessions,
                 COALESCE(SUM(input_tokens), 0) AS total_input_tokens,
@@ -240,34 +271,140 @@ def query_overview(db_path: Path) -> dict:
                 COALESCE(SUM(cache_tokens), 0) AS total_cache_tokens,
                 COALESCE(SUM(cost_usd), 0) AS total_cost
             FROM sessions
-            """
+            {where}
+            """,
+            params,
         ).fetchone()
         return dict(row) if row else {}
 
 
-def query_features(db_path: Path) -> list[dict]:
+def query_features(
+    db_path: Path,
+    project: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+) -> list[dict]:
+    """Query features table, optionally aggregated only across sessions in date range."""
+    if since or until:
+        # Recompute aggregations on the fly when date filter is in play
+        where, params = _filter_clause(project=project, since=since, until=until)
+        with _connect(db_path) as conn:
+            rows = conn.execute(
+                f"""
+                SELECT
+                    project,
+                    COALESCE(feature, '_no-feature') AS name,
+                    MIN(started_at) AS first_seen,
+                    MAX(ended_at) AS last_seen,
+                    SUM(input_tokens + output_tokens + cache_tokens) AS total_tokens,
+                    SUM(cost_usd) AS total_cost
+                FROM sessions
+                {where}
+                GROUP BY project, feature
+                ORDER BY total_cost DESC
+                """,
+                params,
+            ).fetchall()
+            return [dict(r) for r in rows]
+    # Fast path: read pre-aggregated features table
+    where_parts: list[str] = []
+    params: list = []
+    if project:
+        where_parts.append("project = ?")
+        params.append(project)
+    where = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
     with _connect(db_path) as conn:
         rows = conn.execute(
-            """
+            f"""
             SELECT project, name, first_seen, last_seen, total_tokens, total_cost,
                    pr_url, pr_status
             FROM features
-            ORDER BY last_seen DESC NULLS LAST
-            """
+            {where}
+            ORDER BY total_cost DESC
+            """,
+            params,
         ).fetchall()
         return [dict(r) for r in rows]
 
 
-def query_sessions(db_path: Path, limit: int = 100) -> list[dict]:
+def query_sessions(
+    db_path: Path,
+    limit: int = 100,
+    project: str | None = None,
+    feature: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+) -> list[dict]:
+    where, params = _filter_clause(
+        project=project, feature=feature, since=since, until=until
+    )
+    params.append(limit)
     with _connect(db_path) as conn:
         rows = conn.execute(
-            """
+            f"""
             SELECT id AS session_id, project, feature, branch, started_at, ended_at,
                    model, input_tokens, output_tokens, cache_tokens, cost_usd
             FROM sessions
+            {where}
             ORDER BY started_at DESC
             LIMIT ?
             """,
-            (limit,),
+            params,
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def query_session_prompts(db_path: Path, session_id: str) -> list[dict]:
+    """Drill-down: list of prompts for a session, ordered chronologically."""
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            """
+            SELECT ts, role, message_id, input_tokens, output_tokens,
+                   cache_tokens, cost_usd
+            FROM prompts
+            WHERE session_id = ?
+            ORDER BY ts ASC
+            """,
+            (session_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def query_daily_cost(
+    db_path: Path,
+    days: int = 30,
+    project: str | None = None,
+) -> list[dict]:
+    """Daily cost rollup for the last N days, optionally filtered by project."""
+    where_parts = ["started_at IS NOT NULL"]
+    params: list = []
+    if project:
+        where_parts.append("project = ?")
+        params.append(project)
+    where = "WHERE " + " AND ".join(where_parts)
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            f"""
+            SELECT
+                substr(started_at, 1, 10) AS day,
+                COUNT(*) AS sessions,
+                SUM(input_tokens + output_tokens + cache_tokens) AS tokens,
+                SUM(cost_usd) AS cost
+            FROM sessions
+            {where}
+            GROUP BY day
+            ORDER BY day DESC
+            LIMIT ?
+            """,
+            (*params, days),
+        ).fetchall()
+        return list(reversed([dict(r) for r in rows]))
+
+
+def query_distinct_projects(db_path: Path) -> list[str]:
+    """Return sorted list of distinct project names — useful to populate filter dropdown."""
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT project FROM sessions ORDER BY project"
+        ).fetchall()
+        return [r["project"] for r in rows]
