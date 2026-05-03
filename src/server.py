@@ -6,12 +6,15 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from src.db import (
+    query_by_model,
     query_daily_cost,
+    query_distinct_models,
     query_distinct_projects,
     query_features,
     query_overview,
     query_session_prompts,
     query_sessions,
+    query_tokens_by_project,
 )
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
@@ -38,6 +41,7 @@ def _make_handler(db_path: Path):
                     query_overview(
                         db_path,
                         project=first("project"),
+                        model=first("model"),
                         since=first("since"),
                         until=first("until"),
                     )
@@ -47,6 +51,7 @@ def _make_handler(db_path: Path):
                     query_features(
                         db_path,
                         project=first("project"),
+                        model=first("model"),
                         since=first("since"),
                         until=first("until"),
                     )
@@ -59,6 +64,7 @@ def _make_handler(db_path: Path):
                         limit=limit,
                         project=first("project"),
                         feature=first("feature"),
+                        model=first("model"),
                         since=first("since"),
                         until=first("until"),
                     )
@@ -71,10 +77,35 @@ def _make_handler(db_path: Path):
             elif parsed.path == "/api/daily-cost":
                 days = int(qs.get("days", ["30"])[0])
                 self._json(
-                    query_daily_cost(db_path, days=days, project=first("project"))
+                    query_daily_cost(
+                        db_path,
+                        days=days,
+                        project=first("project"),
+                        model=first("model"),
+                    )
+                )
+            elif parsed.path == "/api/by-project":
+                self._json(
+                    query_tokens_by_project(
+                        db_path,
+                        model=first("model"),
+                        since=first("since"),
+                        until=first("until"),
+                    )
+                )
+            elif parsed.path == "/api/by-model":
+                self._json(
+                    query_by_model(
+                        db_path,
+                        project=first("project"),
+                        since=first("since"),
+                        until=first("until"),
+                    )
                 )
             elif parsed.path == "/api/projects":
                 self._json(query_distinct_projects(db_path))
+            elif parsed.path == "/api/models":
+                self._json(query_distinct_models(db_path))
             else:
                 self.send_error(404)
 

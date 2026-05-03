@@ -19,7 +19,13 @@ class Prompt:
     timestamp: str
     input_tokens: int = 0
     output_tokens: int = 0
-    cache_tokens: int = 0
+    cache_read_tokens: int = 0
+    cache_create_tokens: int = 0
+
+    @property
+    def cache_tokens(self) -> int:
+        """Sum of cache reads + cache creates (back-compat)."""
+        return self.cache_read_tokens + self.cache_create_tokens
 
 
 @dataclass
@@ -32,10 +38,18 @@ class Session:
     model: Optional[str] = None
     input_tokens: int = 0
     output_tokens: int = 0
-    cache_tokens: int = 0
+    cache_read_tokens: int = 0
+    cache_create_tokens: int = 0
+    source_mtime: Optional[float] = None
     prompts: list[Prompt] = field(default_factory=list)
     branch_counts: dict[str, int] = field(default_factory=dict)
     cwd_counts: dict[str, int] = field(default_factory=dict)
+    model_counts: dict[str, int] = field(default_factory=dict)
+
+    @property
+    def cache_tokens(self) -> int:
+        """Sum of cache reads + cache creates (back-compat)."""
+        return self.cache_read_tokens + self.cache_create_tokens
 
     @property
     def dominant_branch(self) -> Optional[str]:
@@ -74,10 +88,15 @@ def parse_jsonl(path: Path) -> list[Session]:
     """
     session_id = path.stem
     project = _project_from_path(path)
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        mtime = None
     session = Session(
         session_id=session_id,
         project=project,
         source_path=str(path),
+        source_mtime=mtime,
     )
     seen_message_ids: set[str] = set()
 
@@ -127,15 +146,16 @@ def parse_jsonl(path: Path) -> list[Session]:
             output_t = int(usage.get("output_tokens") or 0)
             cache_read = int(usage.get("cache_read_input_tokens") or 0)
             cache_create = int(usage.get("cache_creation_input_tokens") or 0)
-            cache_t = cache_read + cache_create
 
             model = msg.get("model")
             if isinstance(model, str):
                 session.model = model
+                session.model_counts[model] = session.model_counts.get(model, 0) + 1
 
             session.input_tokens += input_t
             session.output_tokens += output_t
-            session.cache_tokens += cache_t
+            session.cache_read_tokens += cache_read
+            session.cache_create_tokens += cache_create
 
             session.prompts.append(
                 Prompt(
@@ -144,7 +164,8 @@ def parse_jsonl(path: Path) -> list[Session]:
                     timestamp=ts or "",
                     input_tokens=input_t,
                     output_tokens=output_t,
-                    cache_tokens=cache_t,
+                    cache_read_tokens=cache_read,
+                    cache_create_tokens=cache_create,
                 )
             )
 

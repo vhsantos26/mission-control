@@ -21,13 +21,18 @@
         <select id="filter-project" title="Project">
           <option value="">All projects</option>
         </select>
-        <select id="filter-range" title="Date range">
-          <option value="7">Last 7 days</option>
-          <option value="30" selected>Last 30 days</option>
-          <option value="90">Last 90 days</option>
-          <option value="365">Last 12 months</option>
-          <option value="0">All time</option>
+        <select id="filter-model" title="Model family">
+          <option value="">All models</option>
+          <option value="opus">Opus</option>
+          <option value="sonnet">Sonnet</option>
+          <option value="haiku">Haiku</option>
         </select>
+        <div class="pills" id="range-pills">
+          <button data-range="7">7d</button>
+          <button data-range="30" class="active">30d</button>
+          <button data-range="90">90d</button>
+          <button data-range="0">All</button>
+        </div>
       </div>
     </header>
 
@@ -35,20 +40,67 @@
       <section id="tab-overview" class="tab active">
         <div class="cards">
           <div class="card"><div class="card-label">Sessões</div><div class="card-value" id="ov-sessions">—</div></div>
-          <div class="card"><div class="card-label">Tokens (in)</div><div class="card-value" id="ov-input">—</div></div>
-          <div class="card"><div class="card-label">Tokens (out)</div><div class="card-value" id="ov-output">—</div></div>
-          <div class="card"><div class="card-label">Cache</div><div class="card-value" id="ov-cache">—</div></div>
+          <div class="card"><div class="card-label">Turns</div><div class="card-value" id="ov-turns">—</div></div>
+          <div class="card"><div class="card-label">Input</div><div class="card-value" id="ov-input">—</div></div>
+          <div class="card"><div class="card-label">Output</div><div class="card-value" id="ov-output">—</div></div>
+          <div class="card"><div class="card-label">Cache Read</div><div class="card-value" id="ov-cache-read">—</div></div>
+          <div class="card"><div class="card-label">Cache Create</div><div class="card-value" id="ov-cache-create">—</div></div>
           <div class="card highlight"><div class="card-label">Custo (USD)</div><div class="card-value" id="ov-cost">—</div></div>
         </div>
-        <div class="charts">
+
+        <details class="explainer">
+          <summary>What do these numbers mean? <span class="muted">— click to expand</span></summary>
+          <div class="explainer-body">
+            <ul>
+              <li><strong>Sessões</strong> — Conversas Claude Code distintas (1 JSONL = 1 sessão).</li>
+              <li><strong>Turns</strong> — Quantidade de prompts (user → assistant pairs) no período.</li>
+              <li><strong>Input</strong> — Tokens enviados ao modelo. Pricing baseline.</li>
+              <li><strong>Output</strong> — Tokens gerados. Geralmente 5× mais caros que input.</li>
+              <li><strong>Cache Read</strong> — Tokens reutilizados de cache (CLAUDE.md, contexto longo). ~10× mais baratos que input — números altos aqui são <em>bom sinal</em>.</li>
+              <li><strong>Cache Create</strong> — Primeira escrita ao cache. Custa ~1.25× input. Quando crescem muito, indicam prompts iniciais grandes.</li>
+              <li><strong>Custo</strong> — Estimativa em pricing API. Se você usa plano flat (Pro/Max), o custo real é o da assinatura — mude <code>pricing_plan</code> em <code>~/.mission-control/config.json</code>.</li>
+            </ul>
+          </div>
+        </details>
+
+        <div class="charts charts-2col">
           <div class="chart-box">
-            <h3>Custo diário</h3>
-            <div id="chart-daily" class="chart"></div>
+            <h3>Daily work — Input + Output + Cache Create</h3>
+            <div id="chart-daily-work" class="chart"></div>
           </div>
           <div class="chart-box">
-            <h3>Custo por projeto</h3>
-            <div id="chart-projects" class="chart"></div>
+            <h3>Daily cache reads <span class="muted">(separado — ordens de grandeza maior)</span></h3>
+            <div id="chart-daily-cache" class="chart"></div>
           </div>
+        </div>
+
+        <div class="charts charts-2col">
+          <div class="chart-box">
+            <h3>Tokens by project — Input vs Output</h3>
+            <div id="chart-by-project" class="chart"></div>
+          </div>
+          <div class="chart-box">
+            <h3>Token usage by model</h3>
+            <div id="chart-by-model" class="chart"></div>
+          </div>
+        </div>
+
+        <div class="chart-box">
+          <h3>Recent sessions <span class="muted">— últimas 8</span></h3>
+          <table id="recent-sessions-table" class="compact">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Início</th>
+                <th>Projeto</th>
+                <th>Feature</th>
+                <th>Modelo</th>
+                <th>Tokens</th>
+                <th>Custo</th>
+              </tr>
+            </thead>
+            <tbody id="recent-sessions-body"></tbody>
+          </table>
         </div>
       </section>
 
@@ -109,6 +161,7 @@
       <section id="tab-settings" class="tab">
         <h2>Settings</h2>
         <p>Pricing plan e thresholds vêm de <code>~/.mission-control/config.json</code>.</p>
+        <p>Sessões com edição nos últimos 5 minutos são marcadas como <span class="badge badge-active">ATIVA</span>.</p>
         <pre id="settings-cfg">Editar manualmente; reiniciar o dashboard pra aplicar.</pre>
       </section>
     </main>

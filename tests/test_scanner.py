@@ -22,8 +22,25 @@ def test_aggregates_tokens_from_assistant_messages():
     # 100 + 200 = 300 (one duplicate skipped)
     assert s.input_tokens == 300
     assert s.output_tokens == 60  # 20 + 40
-    # cache: (0 + 50) + (1000 + 500) = 1550
+    # cache_read: 50 + 500 = 550; cache_create: 0 + 1000 = 1000
+    assert s.cache_read_tokens == 550
+    assert s.cache_create_tokens == 1000
+    # back-compat property
     assert s.cache_tokens == 1550
+
+
+def test_records_source_mtime():
+    sessions = parse_jsonl(FIXTURE)
+    s = sessions[0]
+    assert s.source_mtime is not None
+    assert s.source_mtime > 0
+
+
+def test_records_model_counts():
+    sessions = parse_jsonl(FIXTURE)
+    s = sessions[0]
+    # All assistant messages in fixture use claude-sonnet-4-6
+    assert s.model_counts.get("claude-sonnet-4-6", 0) >= 2
 
 
 def test_dedup_by_message_id(tmp_path):

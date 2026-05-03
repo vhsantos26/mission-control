@@ -14,6 +14,8 @@ def _make_session(
     project: str = "test/project",
     input_t: int = 1000,
     output_t: int = 200,
+    model: str = "claude-sonnet-4-6",
+    mtime: float | None = None,
 ) -> Session:
     s = Session(
         session_id=sid,
@@ -21,10 +23,12 @@ def _make_session(
         source_path=f"/tmp/{sid}.jsonl",
         started_at="2026-05-03T10:00:00Z",
         ended_at="2026-05-03T11:00:00Z",
-        model="claude-sonnet-4-6",
+        model=model,
         input_tokens=input_t,
         output_tokens=output_t,
-        cache_tokens=0,
+        cache_read_tokens=0,
+        cache_create_tokens=0,
+        source_mtime=mtime,
     )
     s.prompts = [
         Prompt(
