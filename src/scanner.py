@@ -45,6 +45,7 @@ class Session:
     branch_counts: dict[str, int] = field(default_factory=dict)
     cwd_counts: dict[str, int] = field(default_factory=dict)
     model_counts: dict[str, int] = field(default_factory=dict)
+    tool_counts: dict[str, int] = field(default_factory=dict)
 
     @property
     def cache_tokens(self) -> int:
@@ -156,6 +157,19 @@ def parse_jsonl(path: Path) -> list[Session]:
             session.output_tokens += output_t
             session.cache_read_tokens += cache_read
             session.cache_create_tokens += cache_create
+
+            content = msg.get("content")
+            if isinstance(content, list):
+                for block in content:
+                    if not isinstance(block, dict):
+                        continue
+                    if block.get("type") != "tool_use":
+                        continue
+                    tool_name = block.get("name")
+                    if isinstance(tool_name, str) and tool_name:
+                        session.tool_counts[tool_name] = (
+                            session.tool_counts.get(tool_name, 0) + 1
+                        )
 
             session.prompts.append(
                 Prompt(

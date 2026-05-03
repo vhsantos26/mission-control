@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from src.scanner import Session, parse_jsonl
@@ -127,3 +128,50 @@ def test_branch_counts_track_per_record():
     s = sessions[0]
     assert s.branch_counts.get("feat/multi-agent-setup", 0) >= 4
     assert s.branch_counts.get("staging", 0) >= 1
+
+
+def test_extracts_tool_use_blocks_from_assistant_content(tmp_path):
+    """Assistant messages may carry a `content` list with tool_use blocks.
+    Scanner must count them per tool name to feed the Top tools chart.
+    """
+    fixture = tmp_path / "tool-use-test.jsonl"
+    msg1 = {
+        "type": "assistant",
+        "message": {
+            "id": "msg_1",
+            "model": "claude-sonnet-4-6",
+            "content": [
+                {"type": "text", "text": "let me check..."},
+                {"type": "tool_use", "id": "t1", "name": "Bash", "input": {}},
+                {"type": "tool_use", "id": "t2", "name": "Read", "input": {}},
+            ],
+            "usage": {"input_tokens": 10, "output_tokens": 5},
+        },
+        "timestamp": "2026-05-03T10:00:00Z",
+    }
+    msg2 = {
+        "type": "assistant",
+        "message": {
+            "id": "msg_2",
+            "model": "claude-sonnet-4-6",
+            "content": [
+                {"type": "tool_use", "id": "t3", "name": "Bash", "input": {}},
+            ],
+            "usage": {"input_tokens": 10, "output_tokens": 5},
+        },
+        "timestamp": "2026-05-03T10:01:00Z",
+    }
+    fixture.write_text(json.dumps(msg1) + "\n" + json.dumps(msg2) + "\n")
+    sessions = parse_jsonl(fixture)
+    s = sessions[0]
+    assert s.tool_counts == {"Bash": 2, "Read": 1}
+
+
+def test_tool_counts_handles_missing_content():
+    """Sessions whose assistant messages have no `content` list (only `usage`)
+    must not error out — scanner returns empty tool_counts.
+    """
+    sessions = parse_jsonl(FIXTURE)
+    # The fixture's assistant messages don't include a content list with tool_use,
+    # so tool_counts must be an empty dict (not raise).
+    assert sessions[0].tool_counts == {}
