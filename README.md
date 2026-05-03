@@ -82,11 +82,15 @@ tests/            # pytest, ~26 tests, no external deps
 python3 -m pytest tests/ -v
 ```
 
-## Known limitations (v0.1)
+## Known limitations
 
-- **Feature detection** uses the *current* branch of the matching worktree, not the branch checked out at the time of the session. Sessions that ran in secondary worktrees (`.worktrees/<feature>/`) appear under `_no-feature` because the main worktree's branch doesn't match. v0.2 will parse the session's `cwd` from Bash tool calls in the JSONL to resolve the actual worktree.
 - **Cost is estimated** using Anthropic API pricing (Jan 2026). If you're on a flat-rate plan (Pro / Max / Max-20x), set `pricing_plan` to that value in `~/.mission-control/config.json` and all sessions show `$0`.
 - **PR enrichment** requires `gh` CLI authenticated to the right org; it currently runs only via the INDEX.md generator in the Example App repo, not yet wired into the dashboard scan.
+
+## Changelog
+
+- **v0.2.0** — Feature detection via `gitBranch` in JSONL records (every record carries it). Picks the *dominant* branch (most frequent across the session's records), correctly handling sessions that switch worktrees. Removed filesystem worktree lookup. Validated: 61 distinct features detected from 828 sessions on a real Example App usage history.
+- **v0.1.0** — Initial release: scanner + correlator + pricing + SQLite + HTTP server + UI. Feature detection v1 used filesystem worktree lookup (only resolved sessions in the main worktree).
 
 ## License
 

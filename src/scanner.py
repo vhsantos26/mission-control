@@ -34,6 +34,22 @@ class Session:
     output_tokens: int = 0
     cache_tokens: int = 0
     prompts: list[Prompt] = field(default_factory=list)
+    branch_counts: dict[str, int] = field(default_factory=dict)
+    cwd_counts: dict[str, int] = field(default_factory=dict)
+
+    @property
+    def dominant_branch(self) -> Optional[str]:
+        """Most frequent gitBranch across records, or None if no branch info."""
+        if not self.branch_counts:
+            return None
+        return max(self.branch_counts.items(), key=lambda kv: kv[1])[0]
+
+    @property
+    def dominant_cwd(self) -> Optional[str]:
+        """Most frequent cwd across records, or None if no cwd info."""
+        if not self.cwd_counts:
+            return None
+        return max(self.cwd_counts.items(), key=lambda kv: kv[1])[0]
 
 
 def _project_from_path(path: Path) -> str:
@@ -83,6 +99,15 @@ def parse_jsonl(path: Path) -> list[Session]:
                 if not session.started_at:
                     session.started_at = ts
                 session.ended_at = ts
+
+            branch = rec.get("gitBranch")
+            if isinstance(branch, str) and branch:
+                session.branch_counts[branch] = (
+                    session.branch_counts.get(branch, 0) + 1
+                )
+            cwd = rec.get("cwd")
+            if isinstance(cwd, str) and cwd:
+                session.cwd_counts[cwd] = session.cwd_counts.get(cwd, 0) + 1
 
             msg = rec.get("message")
             if not isinstance(msg, dict):
