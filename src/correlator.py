@@ -40,6 +40,45 @@ def branch_for_worktree(worktree_path: Path) -> Optional[str]:
         return None
 
 
+def canonical_project(cwd: Optional[str]) -> Optional[str]:
+    """Resolve a cwd path to its canonical project name.
+
+    - Runs ``git rev-parse --show-toplevel`` to find the repo root
+    - If the toplevel is inside a ``.worktrees/<feature>/`` segment, walks up
+      to the parent repo (so worktrees collapse into their main project)
+    - Returns the basename of the canonical path, preserving hyphens/dots
+    - Returns ``None`` for paths not in a git repo, missing paths, or None input
+    """
+    if not cwd:
+        return None
+    path = Path(cwd)
+    if not path.exists():
+        return None
+    try:
+        out = subprocess.check_output(
+            ["git", "-C", str(path), "rev-parse", "--show-toplevel"],
+            stderr=subprocess.DEVNULL,
+            timeout=2,
+        )
+        toplevel = Path(out.decode().strip())
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        return None
+    if not toplevel:
+        return None
+
+    # Collapse worktree to its parent repo. Some repos use ".worktrees"
+    # (plural, common), others ".worktree" (singular). Handle both.
+    parts = toplevel.parts
+    for marker in (".worktrees", ".worktree"):
+        if marker in parts:
+            idx = parts.index(marker)
+            toplevel = Path(*parts[:idx])
+            break
+
+    name = toplevel.name
+    return name or None
+
+
 def find_pr_for_branch(repo_path: Path, branch: str) -> Optional[dict]:
     """Look up an open or recently-closed PR for a branch via ``gh`` CLI.
 

@@ -7,12 +7,12 @@ import webbrowser
 from pathlib import Path
 
 from src.config import DB_FILE, load
-from src.correlator import feature_from_branch
-from src.db import init_db, upsert_session
+from src.correlator import canonical_project, feature_from_branch
+from src.db import delete_sessions_except, init_db, upsert_session
 from src.scanner import parse_jsonl
 from src.server import serve
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 
 def scan_all(cfg: dict) -> int:
@@ -29,6 +29,7 @@ def scan_all(cfg: dict) -> int:
 
     plan = cfg.get("pricing_plan", "api")
     count = 0
+    seen_ids: set[str] = set()
 
     for project_dir in sorted(root.iterdir()):
         if not project_dir.is_dir():
@@ -44,6 +45,16 @@ def scan_all(cfg: dict) -> int:
             s = sessions[0]
             branch = s.dominant_branch
             feature = feature_from_branch(branch) if branch else "_no-feature"
+
+            # Resolve canonical project from the session's dominant cwd.
+            # This collapses worktrees to their parent repo and filters out
+            # sessions that ran outside any git repo (claude-mem etc).
+            canonical = canonical_project(s.dominant_cwd)
+            if canonical is None:
+                # Skip non-repo sessions (claude-mem observer, etc.)
+                continue
+            s.project = canonical
+
             upsert_session(
                 DB_FILE,
                 s,
@@ -52,7 +63,14 @@ def scan_all(cfg: dict) -> int:
                 worktree_path=s.dominant_cwd,
                 plan=plan,
             )
+            seen_ids.add(s.session_id)
             count += 1
+
+    # Sync: drop sessions no longer present (e.g. legacy rows from older
+    # scanner versions, or transcripts deleted from disk)
+    deleted = delete_sessions_except(DB_FILE, seen_ids)
+    if deleted:
+        print(f"[scan] cleaned {deleted} stale session(s)")
     return count
 
 
