@@ -17,6 +17,18 @@
         <button data-tab="projects">Projects</button>
         <button data-tab="settings">Settings</button>
       </nav>
+      <div class="filters">
+        <select id="filter-project" title="Project">
+          <option value="">All projects</option>
+        </select>
+        <select id="filter-range" title="Date range">
+          <option value="7">Last 7 days</option>
+          <option value="30" selected>Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="365">Last 12 months</option>
+          <option value="0">All time</option>
+        </select>
+      </div>
     </header>
 
     <main>
@@ -26,20 +38,33 @@
           <div class="card"><div class="card-label">Tokens (in)</div><div class="card-value" id="ov-input">—</div></div>
           <div class="card"><div class="card-label">Tokens (out)</div><div class="card-value" id="ov-output">—</div></div>
           <div class="card"><div class="card-label">Cache</div><div class="card-value" id="ov-cache">—</div></div>
-          <div class="card highlight"><div class="card-label">Custo total (USD)</div><div class="card-value" id="ov-cost">—</div></div>
+          <div class="card highlight"><div class="card-label">Custo (USD)</div><div class="card-value" id="ov-cost">—</div></div>
+        </div>
+        <div class="charts">
+          <div class="chart-box">
+            <h3>Custo diário</h3>
+            <div id="chart-daily" class="chart"></div>
+          </div>
+          <div class="chart-box">
+            <h3>Custo por projeto</h3>
+            <div id="chart-projects" class="chart"></div>
+          </div>
         </div>
       </section>
 
       <section id="tab-features" class="tab">
+        <div class="toolbar">
+          <input type="text" id="features-search" placeholder="Filter by feature name…" />
+        </div>
         <table>
           <thead>
             <tr>
               <th>Projeto</th>
               <th>Feature</th>
-              <th>Primeira sessão</th>
-              <th>Última sessão</th>
+              <th>Primeira</th>
+              <th>Última</th>
               <th>Tokens</th>
-              <th>Custo (USD)</th>
+              <th>Custo</th>
               <th>PR</th>
             </tr>
           </thead>
@@ -51,6 +76,7 @@
         <table>
           <thead>
             <tr>
+              <th></th>
               <th>Sessão</th>
               <th>Projeto</th>
               <th>Feature</th>
@@ -66,13 +92,24 @@
       </section>
 
       <section id="tab-projects" class="tab">
-        <p>Comparação cross-project (em construção).</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Projeto</th>
+              <th>Sessões</th>
+              <th>Tokens</th>
+              <th>Custo</th>
+              <th>% do total</th>
+            </tr>
+          </thead>
+          <tbody id="projects-body"></tbody>
+        </table>
       </section>
 
       <section id="tab-settings" class="tab">
         <h2>Settings</h2>
         <p>Pricing plan e thresholds vêm de <code>~/.mission-control/config.json</code>.</p>
-        <pre id="settings-cfg">Carregando…</pre>
+        <pre id="settings-cfg">Editar manualmente; reiniciar o dashboard pra aplicar.</pre>
       </section>
     </main>
 

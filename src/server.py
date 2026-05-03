@@ -5,7 +5,14 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from src.db import query_features, query_overview, query_sessions
+from src.db import (
+    query_daily_cost,
+    query_distinct_projects,
+    query_features,
+    query_overview,
+    query_session_prompts,
+    query_sessions,
+)
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
 
@@ -16,18 +23,58 @@ def _make_handler(db_path: Path):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):  # noqa: N802 (BaseHTTPRequestHandler API)
             parsed = urlparse(self.path)
+            qs = parse_qs(parsed.query)
+
+            def first(name: str) -> str | None:
+                v = qs.get(name)
+                return v[0] if v and v[0] else None
+
             if parsed.path in ("/", "/index.html"):
                 self._serve_static("index.html", "text/html; charset=utf-8")
             elif parsed.path.startswith("/static/"):
                 self._serve_static_path(parsed.path[len("/static/") :])
             elif parsed.path == "/api/overview":
-                self._json(query_overview(db_path))
+                self._json(
+                    query_overview(
+                        db_path,
+                        project=first("project"),
+                        since=first("since"),
+                        until=first("until"),
+                    )
+                )
             elif parsed.path == "/api/features":
-                self._json(query_features(db_path))
+                self._json(
+                    query_features(
+                        db_path,
+                        project=first("project"),
+                        since=first("since"),
+                        until=first("until"),
+                    )
+                )
             elif parsed.path == "/api/sessions":
-                qs = parse_qs(parsed.query)
-                limit = int(qs.get("limit", ["100"])[0])
-                self._json(query_sessions(db_path, limit=limit))
+                limit = int(qs.get("limit", ["200"])[0])
+                self._json(
+                    query_sessions(
+                        db_path,
+                        limit=limit,
+                        project=first("project"),
+                        feature=first("feature"),
+                        since=first("since"),
+                        until=first("until"),
+                    )
+                )
+            elif parsed.path.startswith("/api/sessions/") and parsed.path.endswith(
+                "/prompts"
+            ):
+                sid = parsed.path[len("/api/sessions/") : -len("/prompts")]
+                self._json(query_session_prompts(db_path, sid))
+            elif parsed.path == "/api/daily-cost":
+                days = int(qs.get("days", ["30"])[0])
+                self._json(
+                    query_daily_cost(db_path, days=days, project=first("project"))
+                )
+            elif parsed.path == "/api/projects":
+                self._json(query_distinct_projects(db_path))
             else:
                 self.send_error(404)
 
