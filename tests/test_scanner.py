@@ -1,0 +1,68 @@
+from pathlib import Path
+
+from src.scanner import Session, parse_jsonl
+
+FIXTURE = Path(__file__).parent / "fixtures" / "session-sample.jsonl"
+
+
+def test_parse_returns_one_session():
+    sessions = parse_jsonl(FIXTURE)
+    assert len(sessions) == 1
+    assert isinstance(sessions[0], Session)
+
+
+def test_session_id_from_filename():
+    sessions = parse_jsonl(FIXTURE)
+    assert sessions[0].session_id == "session-sample"
+
+
+def test_aggregates_tokens_from_assistant_messages():
+    sessions = parse_jsonl(FIXTURE)
+    s = sessions[0]
+    # 100 + 200 = 300 (one duplicate skipped)
+    assert s.input_tokens == 300
+    assert s.output_tokens == 60  # 20 + 40
+    # cache: (0 + 50) + (1000 + 500) = 1550
+    assert s.cache_tokens == 1550
+
+
+def test_dedup_by_message_id(tmp_path):
+    import json
+    msg = {
+        "type": "assistant",
+        "message": {
+            "id": "msg_x",
+            "model": "claude-sonnet-4-6",
+            "usage": {
+                "input_tokens": 100,
+                "output_tokens": 50,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+            },
+        },
+        "timestamp": "2026-05-03T10:00:00Z",
+    }
+    fixture = tmp_path / "dup-test.jsonl"
+    fixture.write_text(json.dumps(msg) + "\n" + json.dumps(msg) + "\n")
+    sessions = parse_jsonl(fixture)
+    assert sessions[0].input_tokens == 100  # not 200
+
+
+def test_tolerates_malformed_lines():
+    # The fixture has a "malformed line not json" at the end — should not crash.
+    sessions = parse_jsonl(FIXTURE)
+    assert len(sessions) == 1
+
+
+def test_records_model():
+    sessions = parse_jsonl(FIXTURE)
+    assert sessions[0].model == "claude-sonnet-4-6"
+
+
+def test_returns_empty_list_for_no_assistant_messages(tmp_path):
+    fixture = tmp_path / "no-assistant.jsonl"
+    fixture.write_text(
+        '{"type":"user","message":{"role":"user","content":"hi"}}\n'
+    )
+    sessions = parse_jsonl(fixture)
+    assert sessions == []
