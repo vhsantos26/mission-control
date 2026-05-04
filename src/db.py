@@ -479,7 +479,11 @@ def query_sessions(
 
 
 def query_session_prompts(db_path: Path, session_id: str) -> list[dict]:
-    """Drill-down: list of prompts for a session, ordered chronologically."""
+    """Drill-down: list of prompts for a session, newest first.
+
+    DESC mirrors the parent sessions table (latest activity at top) — most
+    useful when inspecting an ATIVA session to see what just happened.
+    """
     with _connect(db_path) as conn:
         rows = conn.execute(
             """
@@ -489,7 +493,7 @@ def query_session_prompts(db_path: Path, session_id: str) -> list[dict]:
                    cost_usd
             FROM prompts
             WHERE session_id = ?
-            ORDER BY ts ASC
+            ORDER BY ts DESC
             """,
             (session_id,),
         ).fetchall()

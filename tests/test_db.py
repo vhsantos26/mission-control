@@ -2,6 +2,7 @@ from src.db import (
     init_db,
     query_features,
     query_overview,
+    query_session_prompts,
     query_sessions,
     query_tool_usage,
     upsert_session,
@@ -100,6 +101,43 @@ def test_query_sessions_orders_by_started_at_desc(tmp_path):
     sessions = query_sessions(db)
     assert sessions[0]["session_id"] == "s_new", "newest started_at must be first"
     assert sessions[1]["session_id"] == "s_old"
+
+
+def test_query_session_prompts_orders_by_ts_desc(tmp_path):
+    """Drill-down rows show newest message first to mirror the parent table.
+
+    Active sessions update continuously; the user expects to see the most
+    recent activity at the top, not the start of the conversation.
+    """
+    db = tmp_path / "test.sqlite"
+    init_db(db)
+    s = _make_session("s1", feature="foo")
+    s.prompts = [
+        Prompt(
+            message_id="msg_old",
+            role="assistant",
+            timestamp="2026-05-04T10:57:00Z",
+            input_tokens=100,
+            output_tokens=10,
+        ),
+        Prompt(
+            message_id="msg_mid",
+            role="assistant",
+            timestamp="2026-05-04T10:59:00Z",
+            input_tokens=200,
+            output_tokens=20,
+        ),
+        Prompt(
+            message_id="msg_new",
+            role="assistant",
+            timestamp="2026-05-04T11:01:00Z",
+            input_tokens=300,
+            output_tokens=30,
+        ),
+    ]
+    upsert_session(db, s, feature="foo")
+    prompts = query_session_prompts(db, "s1")
+    assert [p["message_id"] for p in prompts] == ["msg_new", "msg_mid", "msg_old"]
 
 
 def test_query_sessions_uses_mtime_as_tiebreaker(tmp_path):
