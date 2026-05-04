@@ -198,6 +198,38 @@ async function loadByModel() {
   });
 }
 
+async function loadByTool() {
+  const r = await fetch("/api/by-tool" + qs());
+  const data = await r.json();
+  if (!data.length) {
+    chart("chart-by-tool").setOption({
+      title: { text: "Sem dados de tool_use ainda — re-rodar `cli.py scan` após upgrade pra v0.5", left: "center", top: "center", textStyle: { color: "#aaa", fontSize: 13 } },
+    });
+    return;
+  }
+  // Reverse so largest count appears at the TOP of the horizontal bar (yAxis renders bottom-up)
+  const reversed = [...data].reverse();
+  chart("chart-by-tool").setOption({
+    grid: { left: 130, right: 60, top: 20, bottom: 30 },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+      formatter: (p) => `${p[0].name}<br/>${fmt(p[0].value)} usos em ${reversed[p[0].dataIndex].sessions} sessões`,
+    },
+    yAxis: { type: "category", data: reversed.map((d) => d.tool_name), axisLabel: { color: "#aaa" } },
+    xAxis: { type: "value", axisLabel: { color: "#aaa", formatter: (v) => v >= 1e3 ? (v / 1e3).toFixed(1) + "k" : v } },
+    series: [
+      {
+        name: "invocações",
+        type: "bar",
+        data: reversed.map((d) => d.total_count),
+        itemStyle: { color: "#4ac4a8" },
+        label: { show: true, position: "right", color: "#aaa", formatter: (p) => fmt(p.value) },
+      },
+    ],
+  });
+}
+
 async function loadFeatures() {
   const r = await fetch("/api/features" + qs());
   const features = await r.json();
@@ -338,6 +370,7 @@ async function refresh() {
     loadDailyCache(),
     loadByProject(),
     loadByModel(),
+    loadByTool(),
     loadRecentSessions(),
     loadFeatures(),
     loadSessions(),

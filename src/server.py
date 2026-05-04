@@ -15,6 +15,7 @@ from src.db import (
     query_session_prompts,
     query_sessions,
     query_tokens_by_project,
+    query_tool_usage,
 )
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
@@ -100,6 +101,18 @@ def _make_handler(db_path: Path):
                         project=first("project"),
                         since=first("since"),
                         until=first("until"),
+                    )
+                )
+            elif parsed.path == "/api/by-tool":
+                self._json(
+                    query_tool_usage(
+                        db_path,
+                        project=first("project"),
+                        feature=first("feature"),
+                        model=first("model"),
+                        since=first("since"),
+                        until=first("until"),
+                        limit=int(qs.get("limit", ["20"])[0]),
                     )
                 )
             elif parsed.path == "/api/projects":
