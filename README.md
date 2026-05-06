@@ -1,14 +1,16 @@
 # Mission Control
 
-Local dashboard for Claude Code session analytics. Reads JSONL transcripts from `~/.claude/projects/` and exposes per-feature/per-project token and cost analytics on a local web UI.
+Local dashboard for AI coding session analytics. Reads JSONL transcripts from Claude Code (`~/.claude/projects/`) and Codex (`~/.codex/sessions/`) and exposes per-feature/per-project token and cost analytics on a local web UI.
 
 ## What it does
 
-- **Reads** existing Claude Code transcripts (no hooks, no behavior changes — purely observation)
+- **Reads** existing Claude Code + Codex transcripts (no hooks, no behavior changes — purely observation)
 - **Correlates** sessions to features via Conventional Commits branch name parsed from each project's worktree
 - **Stores** in SQLite at `~/.mission-control/db.sqlite`
 - **Serves** a web UI on `127.0.0.1:8080` with 5 tabs: Overview, Features, Sessions, Projects, Settings
 - **Re-scans** every 30 seconds while the dashboard is open
+
+Cursor support is intentionally skipped: Cursor doesn't write per-turn token usage to the local filesystem. Only model/conversation summaries live in `~/.cursor/ai-tracking/ai-code-tracking.db`, which doesn't expose the granularity needed for cost attribution.
 
 ## Privacy
 
@@ -38,6 +40,7 @@ Edit `~/.mission-control/config.json` (created with defaults on first run):
 ```json
 {
   "claude_projects_dir": "/Users/<you>/.claude/projects",
+  "codex_sessions_dir": "/Users/<you>/.codex/sessions",
   "scan_interval_seconds": 30,
   "pricing_plan": "api",
   "port": 8080,
@@ -45,8 +48,9 @@ Edit `~/.mission-control/config.json` (created with defaults on first run):
 }
 ```
 
-- `pricing_plan`: `api` (per-token billing) | `pro` | `max` | `max20x` (flat-rate plans return $0)
+- `pricing_plan`: `api` (per-token billing) | `pro` | `max` | `max20x` (flat-rate plans return $0). Affects Anthropic models only — OpenAI is always API-priced.
 - `worktree_root`: where your project worktrees live; used to resolve branch → feature
+- `codex_sessions_dir`: leave it pointing at the default location, or remove it from the config if you don't use Codex (the source skips silently when the path is missing)
 
 ## Feature detection
 
@@ -64,17 +68,24 @@ If no worktree match is found, the session is grouped under `_no-feature`.
 
 ```
 src/
-  scanner.py      # parse JSONL → Session (dedup by message.id)
-  correlator.py   # branch → feature, gh PR lookup
-  pricing.py      # cost per Anthropic API rates (Jan 2026)
+  scanner.py      # parse Claude JSONL → Session (dedup by message.id)
+  sources/
+    base.py         # SessionSource abstract interface
+    claude_code.py  # ClaudeCodeSource — walks ~/.claude/projects/
+    codex.py        # CodexSource — walks ~/.codex/sessions/
+  correlator.py   # branch → feature, canonical project resolution, gh PR lookup
+  pricing.py      # cost per Anthropic + OpenAI rates (Jan 2026)
   db.py           # SQLite schema + upsert + queries
   server.py       # http.server stdlib + JSON API + static UI
   config.py       # ~/.mission-control/config.json
+  log.py          # stdlib logging setup
 static/
   index.html, styles.css, app.js   # vanilla JS + ECharts via CDN
 cli.py            # entrypoint: dashboard | scan | version
-tests/            # pytest, ~26 tests, no external deps
+tests/            # pytest, no external deps
 ```
+
+Adding a new tool = one new file under `src/sources/` implementing `SessionSource.discover(cfg) -> Iterator[Session]`, then register it in `cli.SOURCES`. Canonical project resolution, feature derivation, dedup, and pricing are uniform downstream.
 
 ## Tests
 

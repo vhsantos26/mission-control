@@ -163,11 +163,17 @@ def upsert_session(
             )
             conn.execute(
                 """
-                INSERT OR IGNORE INTO prompts (
+                INSERT INTO prompts (
                     session_id, ts, role, message_id,
                     input_tokens, output_tokens, cache_read_tokens, cache_create_tokens,
                     cost_usd
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(message_id) DO UPDATE SET
+                    input_tokens = excluded.input_tokens,
+                    output_tokens = excluded.output_tokens,
+                    cache_read_tokens = excluded.cache_read_tokens,
+                    cache_create_tokens = excluded.cache_create_tokens,
+                    cost_usd = excluded.cost_usd
                 """,
                 (
                     session.session_id,
@@ -221,6 +227,13 @@ def _recompute_feature(
             float(row["total_cost"] or 0),
         ),
     )
+
+
+def all_session_ids(db_path: Path) -> set[str]:
+    """Return the set of session IDs currently stored — used to compute scan deltas."""
+    with _connect(db_path) as conn:
+        rows = conn.execute("SELECT id FROM sessions").fetchall()
+        return {r["id"] for r in rows}
 
 
 def delete_sessions_except(db_path: Path, keep_ids: set[str]) -> int:
@@ -544,13 +557,14 @@ def query_tokens_by_project(
     since: str | None = None,
     until: str | None = None,
 ) -> list[dict]:
-    """Per-project totals for stacked input/output bar chart."""
+    """Per-project totals for stacked input/output bar chart and Projects tab."""
     where, params = _filter_clause(model=model, since=since, until=until)
     with _connect(db_path) as conn:
         rows = conn.execute(
             f"""
             SELECT
                 project,
+                COUNT(*) AS sessions,
                 SUM(input_tokens) AS input_tokens,
                 SUM(output_tokens) AS output_tokens,
                 SUM(cache_create_tokens) AS cache_create_tokens,

@@ -1,57 +1,70 @@
 """Mission Control CLI entrypoint."""
 
 import argparse
+import logging
 import threading
 import time
 import webbrowser
-from pathlib import Path
+from dataclasses import dataclass
 
 from src.config import DB_FILE, load
 from src.correlator import canonical_project, feature_from_branch
-from src.db import delete_sessions_except, init_db, upsert_session
-from src.scanner import parse_jsonl
+from src.db import all_session_ids, delete_sessions_except, init_db, upsert_session
+from src.log import setup as setup_logging
 from src.server import serve
+from src.sources import ClaudeCodeSource, CodexSource, SessionSource
+
+# Sources are tried in order; each yields its own ``Session`` records and
+# canonicalization runs uniformly downstream. Add a new tool here.
+SOURCES: list[SessionSource] = [ClaudeCodeSource(), CodexSource()]
 
 VERSION = "0.5.0"
 
+log = logging.getLogger("mc.cli")
 
-def scan_all(cfg: dict) -> int:
-    """Scan all JSONL transcripts and upsert into the DB. Returns count of sessions touched.
 
-    Feature is derived from each session's *dominant gitBranch* — the branch most
-    frequently recorded across the session's records. This handles long sessions
-    that switch worktrees, and works retroactively without filesystem lookup.
+@dataclass
+class ScanResult:
+    """Outcome of one scan pass — used to log only when something changed.
+
+    Parse failures are logged directly by each ``SessionSource``, so they
+    don't need a separate counter here.
     """
-    root = Path(cfg["claude_projects_dir"])
-    if not root.exists():
-        print(f"[warn] claude_projects_dir does not exist: {root}")
-        return 0
 
+    processed: int = 0       # total sessions touched (upserted) this pass
+    new: int = 0             # session IDs not previously in the DB
+    cleaned: int = 0         # rows dropped by the sync-delete step
+    skipped_non_repo: int = 0  # sessions whose cwd doesn't resolve to a git repo
+
+    @property
+    def is_quiet(self) -> bool:
+        """True when there's nothing worth surfacing to the user."""
+        return self.new == 0 and self.cleaned == 0
+
+
+def scan_all(cfg: dict) -> ScanResult:
+    """Scan every configured source and upsert into the DB.
+
+    Each ``SessionSource`` yields ``Session`` records; canonical project
+    resolution + feature derivation + pricing are uniform downstream.
+    Sessions whose cwd doesn't resolve to a git repo are dropped entirely.
+    """
+    result = ScanResult()
     plan = cfg.get("pricing_plan", "api")
-    count = 0
     seen_ids: set[str] = set()
+    prev_ids = all_session_ids(DB_FILE)
 
-    for project_dir in sorted(root.iterdir()):
-        if not project_dir.is_dir():
-            continue
-        for jsonl in project_dir.glob("*.jsonl"):
-            try:
-                sessions = parse_jsonl(jsonl)
-            except Exception as e:
-                print(f"[warn] failed to parse {jsonl.name}: {e}")
-                continue
-            if not sessions:
-                continue
-            s = sessions[0]
+    for source in SOURCES:
+        for s in source.discover(cfg):
             branch = s.dominant_branch
             feature = feature_from_branch(branch) if branch else "_no-feature"
 
             # Resolve canonical project from the session's dominant cwd.
-            # This collapses worktrees to their parent repo and filters out
-            # sessions that ran outside any git repo (claude-mem etc).
+            # Collapses worktrees to their parent repo; drops non-repo sessions
+            # (claude-mem observer, scratch dirs, etc).
             canonical = canonical_project(s.dominant_cwd)
             if canonical is None:
-                # Skip non-repo sessions (claude-mem observer, etc.)
+                result.skipped_non_repo += 1
                 continue
             s.project = canonical
 
@@ -64,36 +77,68 @@ def scan_all(cfg: dict) -> int:
                 plan=plan,
             )
             seen_ids.add(s.session_id)
-            count += 1
+            result.processed += 1
 
-    # Sync: drop sessions no longer present (e.g. legacy rows from older
-    # scanner versions, or transcripts deleted from disk)
-    deleted = delete_sessions_except(DB_FILE, seen_ids)
-    if deleted:
-        print(f"[scan] cleaned {deleted} stale session(s)")
-    return count
+    result.new = len(seen_ids - prev_ids)
+    result.cleaned = delete_sessions_except(DB_FILE, seen_ids)
+    return result
+
+
+def _log_scan_result(r: ScanResult, *, prefix: str = "") -> None:
+    """Emit one line summarizing the pass — only if something changed.
+
+    Steady-state runs (no new/cleaned/warnings) stay silent so the terminal
+    isn't flooded with identical lines every scan_interval_seconds.
+    """
+    if r.is_quiet:
+        log.debug(
+            "%sscan idle (processed=%d, skipped=%d)",
+            prefix,
+            r.processed,
+            r.skipped_non_repo,
+        )
+        return
+
+    parts: list[str] = []
+    if r.new:
+        parts.append(f"+{r.new} new")
+    if r.cleaned:
+        parts.append(f"-{r.cleaned} cleaned")
+    log.info(
+        "%sscan: %s (total=%d sessions tracked)",
+        prefix,
+        ", ".join(parts),
+        r.processed,
+    )
 
 
 def scan_loop(cfg: dict) -> None:
     interval = int(cfg.get("scan_interval_seconds", 30))
+    log.debug("scan loop starting (interval=%ds)", interval)
     while True:
         try:
-            n = scan_all(cfg)
-            if n:
-                print(f"[scan] processed {n} session(s)")
+            result = scan_all(cfg)
+            _log_scan_result(result)
         except Exception as e:
-            print(f"[scan] error: {e}")
+            log.exception("scan loop error: %s", e)
         time.sleep(interval)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(prog="mission-control")
+    parser.add_argument(
+        "--log-level",
+        default=None,
+        help="DEBUG | INFO | WARNING | ERROR (overrides MC_LOG_LEVEL env var)",
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("dashboard", help="scan + serve web UI")
     scan_p = sub.add_parser("scan", help="run scanner")
     scan_p.add_argument("--once", action="store_true", help="exit after first pass")
     sub.add_parser("version")
     args = parser.parse_args()
+
+    setup_logging(args.log_level)
 
     cfg = load()
     init_db(DB_FILE)
@@ -103,16 +148,16 @@ def main() -> int:
         return 0
 
     if args.cmd == "scan":
-        n = scan_all(cfg)
-        print(f"[scan] processed {n} session(s)")
+        result = scan_all(cfg)
+        _log_scan_result(result, prefix="initial ")
         if not args.once:
             scan_loop(cfg)
         return 0
 
     if args.cmd == "dashboard":
         # initial scan synchronously so the UI has data on first paint
-        n = scan_all(cfg)
-        print(f"[scan] initial pass processed {n} session(s)")
+        result = scan_all(cfg)
+        _log_scan_result(result, prefix="initial ")
 
         threading.Thread(target=scan_loop, args=(cfg,), daemon=True).start()
         port = int(cfg.get("port", 8080))

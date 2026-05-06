@@ -83,6 +83,53 @@ def test_cache_create_is_more_than_input():
     assert create_cost < input_cost * 1.5
 
 
+def test_gpt4o_pricing_ballpark():
+    cost = cost_for_session(
+        model="gpt-4o",
+        input_tokens=1_000_000,
+        output_tokens=500_000,
+    )
+    # gpt-4o: $2.50/M in, $10/M out -> $2.50 + $5 = $7.50
+    assert 7.0 < cost < 8.0
+
+
+def test_codex_model_resolves_via_prefix():
+    # The CLI version "gpt-5.3-codex-2026-01" should resolve to "gpt-5.3-codex"
+    cost = cost_for_session(
+        model="gpt-5.3-codex-2026-01",
+        input_tokens=1_000_000,
+        output_tokens=0,
+    )
+    assert cost > 0  # not the unknown-model zero
+
+
+def test_openai_cached_input_is_half_price():
+    # OpenAI bills cached input at 50% of input.
+    fresh = cost_for_session(
+        model="gpt-4o",
+        input_tokens=1_000_000,
+        output_tokens=0,
+    )
+    cached = cost_for_session(
+        model="gpt-4o",
+        input_tokens=0,
+        output_tokens=0,
+        cache_read_tokens=1_000_000,
+    )
+    assert abs(cached - fresh / 2) < 0.01
+
+
+def test_openai_cache_create_is_zero_priced():
+    # OpenAI does not bill cache create separately — cost should be 0.
+    cost = cost_for_session(
+        model="gpt-4o",
+        input_tokens=0,
+        output_tokens=0,
+        cache_create_tokens=1_000_000,
+    )
+    assert cost == 0.0
+
+
 def test_legacy_cache_tokens_arg_treated_as_cache_read():
     legacy = cost_for_session(
         model="claude-sonnet-4-6",

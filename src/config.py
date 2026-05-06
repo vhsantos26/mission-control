@@ -9,6 +9,7 @@ DB_FILE = CONFIG_DIR / "db.sqlite"
 
 DEFAULTS: dict = {
     "claude_projects_dir": str(Path.home() / ".claude" / "projects"),
+    "codex_sessions_dir": str(Path.home() / ".codex" / "sessions"),
     "scan_interval_seconds": 30,
     "pricing_plan": "api",  # "api" | "pro" | "max" | "max20x"
     "port": 8080,

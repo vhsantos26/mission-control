@@ -4,6 +4,7 @@ from src.db import (
     query_overview,
     query_session_prompts,
     query_sessions,
+    query_tokens_by_project,
     query_tool_usage,
     upsert_session,
 )
@@ -192,3 +193,22 @@ def test_query_overview_returns_totals(tmp_path):
     overview = query_overview(db)
     assert overview["total_sessions"] == 1
     assert overview["total_input_tokens"] >= 1000
+
+
+def test_query_tokens_by_project_includes_session_count(tmp_path):
+    """Regression: the Projects tab needs a per-project session count.
+
+    The UI binds to ``d.sessions`` directly; if the SQL forgets ``COUNT(*)``,
+    the column silently shows ``—`` (NaN.toLocaleString -> "NaN" hidden by
+    fmt(null)). Don't drop the column from the SELECT.
+    """
+    db = tmp_path / "test.sqlite"
+    init_db(db)
+    upsert_session(db, _make_session("s1", project="alpha"), feature="foo")
+    upsert_session(db, _make_session("s2", project="alpha"), feature="bar")
+    upsert_session(db, _make_session("s3", project="beta"), feature="foo")
+
+    rows = query_tokens_by_project(db)
+    by_project = {r["project"]: r for r in rows}
+    assert by_project["alpha"]["sessions"] == 2
+    assert by_project["beta"]["sessions"] == 1

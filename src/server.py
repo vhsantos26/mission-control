@@ -1,6 +1,7 @@
 """HTTP server (stdlib only) serving JSON API + static UI."""
 
 import json
+import logging
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -19,6 +20,8 @@ from src.db import (
 )
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
+
+log = logging.getLogger("mc.server")
 
 
 def _make_handler(db_path: Path):
@@ -160,5 +163,5 @@ def _make_handler(db_path: Path):
 
 def serve(db_path: Path, port: int = 8080) -> None:
     handler = _make_handler(db_path)
-    print(f"Mission Control serving on http://127.0.0.1:{port}")
+    log.info("serving on http://127.0.0.1:%d", port)
     HTTPServer(("127.0.0.1", port), handler).serve_forever()

@@ -313,7 +313,7 @@ async function loadProjectsTab() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${d.project}</td>
-      <td>—</td>
+      <td>${fmt(d.sessions)}</td>
       <td>${fmt(tokens)}</td>
       <td>${fmtCost(d.cost)}</td>
       <td>${total ? ((d.cost / total) * 100).toFixed(1) : "0"}%</td>
