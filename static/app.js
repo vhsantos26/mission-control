@@ -1,5 +1,197 @@
+// ---------- i18n ----------
+let lang = localStorage.getItem("mc_lang") || "en";
+
+const LOCALES = {
+  en: {
+    nav_overview: "Overview",
+    nav_features: "Features",
+    nav_sessions: "Sessions",
+    nav_projects: "Projects",
+    nav_settings: "Settings",
+    filter_all_projects: "All projects",
+    filter_all_models: "All models",
+    card_sessions: "Sessions",
+    card_turns: "Turns",
+    card_input: "Input",
+    card_output: "Output",
+    card_cache_read: "Cache Read",
+    card_cache_create: "Cache Create",
+    card_cost: "Cost (USD)",
+    explainer_summary: "What do these numbers mean?",
+    explainer_expand: "— click to expand",
+    explainer_sessions: "<strong>Sessions</strong> — Distinct Claude Code conversations (1 JSONL = 1 session).",
+    explainer_turns: "<strong>Turns</strong> — Number of prompts (user → assistant pairs) in the period.",
+    explainer_input: "<strong>Input</strong> — Tokens sent to the model. Pricing baseline.",
+    explainer_output: "<strong>Output</strong> — Generated tokens. Generally 5× more expensive than input.",
+    explainer_cache_read: "<strong>Cache Read</strong> — Tokens reused from cache (CLAUDE.md, long context). ~10× cheaper than input — high numbers here are a <em>good sign</em>.",
+    explainer_cache_create: "<strong>Cache Create</strong> — First write to cache. Costs ~1.25× input. When they grow a lot, they indicate large initial prompts.",
+    explainer_cost: "<strong>Cost</strong> — API pricing estimate. If you use a flat plan (Pro/Max), the real cost is your subscription — change <code>pricing_plan</code> in <code>~/.mission-control/config.json</code>.",
+    chart_daily_work: "Daily work — Input + Output + Cache Create",
+    chart_daily_cache: "Daily cache reads",
+    chart_daily_cache_sub: "(separate — orders of magnitude larger)",
+    chart_by_project: "Tokens by project — Input vs Output",
+    chart_by_model: "Token usage by model",
+    chart_top_tools: "Top tools",
+    chart_top_tools_sub: "— invocations per tool (all filtered sessions)",
+    chart_recent: "Recent sessions",
+    chart_recent_sub: "— last 8",
+    series_input: "input",
+    series_output: "output",
+    series_cache_create: "cache create",
+    series_cache_read: "cache read",
+    series_invocations: "invocations",
+    chart_tool_empty: "No tool_use data yet — re-run `cli.py scan` after upgrading to v0.5",
+    chart_tool_uses_in: "uses in",
+    chart_tool_sessions_word: "sessions",
+    badge_active: "Active",
+    recent_start: "Start",
+    recent_project: "Project",
+    recent_feature: "Feature",
+    recent_model: "Model",
+    recent_tokens: "Tokens",
+    recent_cost: "Cost",
+    feat_search_placeholder: "Filter by feature name…",
+    feat_project: "Project",
+    feat_feature: "Feature",
+    feat_first: "First",
+    feat_last: "Last",
+    feat_tokens: "Tokens",
+    feat_cost: "Cost",
+    feat_pr: "PR",
+    sess_session: "Session",
+    sess_project: "Project",
+    sess_feature: "Feature",
+    sess_branch: "Branch",
+    sess_model: "Model",
+    sess_start: "Start",
+    sess_tokens: "Tokens",
+    sess_cost: "Cost",
+    prompts_empty: "No prompts recorded.",
+    prompts_when: "When",
+    prompts_role: "Role",
+    prompts_input: "Input",
+    prompts_output: "Output",
+    prompts_cache_r: "Cache R",
+    prompts_cache_c: "Cache C",
+    prompts_cost: "Cost",
+    proj_project: "Project",
+    proj_sessions: "Sessions",
+    proj_tokens: "Tokens",
+    proj_cost: "Cost",
+    proj_pct: "% of total",
+    settings_title: "Settings",
+    settings_config_hint: "Pricing plan and thresholds come from <code>~/.mission-control/config.json</code>.",
+    settings_active_hint: "Sessions edited in the last 5 minutes are marked as",
+    settings_edit_hint: "Edit manually; restart the dashboard to apply.",
+    settings_lang_label: "Language",
+  },
+  pt: {
+    nav_overview: "Visão Geral",
+    nav_features: "Features",
+    nav_sessions: "Sessões",
+    nav_projects: "Projetos",
+    nav_settings: "Configurações",
+    filter_all_projects: "Todos os projetos",
+    filter_all_models: "Todos os modelos",
+    card_sessions: "Sessões",
+    card_turns: "Turns",
+    card_input: "Input",
+    card_output: "Output",
+    card_cache_read: "Cache Read",
+    card_cache_create: "Cache Create",
+    card_cost: "Custo (USD)",
+    explainer_summary: "O que esses números significam?",
+    explainer_expand: "— clique para expandir",
+    explainer_sessions: "<strong>Sessões</strong> — Conversas Claude Code distintas (1 JSONL = 1 sessão).",
+    explainer_turns: "<strong>Turns</strong> — Quantidade de prompts (user → assistant pairs) no período.",
+    explainer_input: "<strong>Input</strong> — Tokens enviados ao modelo. Pricing baseline.",
+    explainer_output: "<strong>Output</strong> — Tokens gerados. Geralmente 5× mais caros que input.",
+    explainer_cache_read: "<strong>Cache Read</strong> — Tokens reutilizados de cache (CLAUDE.md, contexto longo). ~10× mais baratos que input — números altos aqui são <em>bom sinal</em>.",
+    explainer_cache_create: "<strong>Cache Create</strong> — Primeira escrita ao cache. Custa ~1.25× input. Quando crescem muito, indicam prompts iniciais grandes.",
+    explainer_cost: "<strong>Custo</strong> — Estimativa em pricing API. Se você usa plano flat (Pro/Max), o custo real é o da assinatura — mude <code>pricing_plan</code> em <code>~/.mission-control/config.json</code>.",
+    chart_daily_work: "Trabalho diário — Input + Output + Cache Create",
+    chart_daily_cache: "Cache reads diários",
+    chart_daily_cache_sub: "(separado — ordens de grandeza maior)",
+    chart_by_project: "Tokens por projeto — Input vs Output",
+    chart_by_model: "Uso de tokens por modelo",
+    chart_top_tools: "Top tools",
+    chart_top_tools_sub: "— invocações por ferramenta (todas as sessões filtradas)",
+    chart_recent: "Sessões recentes",
+    chart_recent_sub: "— últimas 8",
+    series_input: "input",
+    series_output: "output",
+    series_cache_create: "cache create",
+    series_cache_read: "cache read",
+    series_invocations: "invocações",
+    chart_tool_empty: "Sem dados de tool_use ainda — re-rodar `cli.py scan` após upgrade pra v0.5",
+    chart_tool_uses_in: "usos em",
+    chart_tool_sessions_word: "sessões",
+    badge_active: "Ativa",
+    recent_start: "Início",
+    recent_project: "Projeto",
+    recent_feature: "Feature",
+    recent_model: "Modelo",
+    recent_tokens: "Tokens",
+    recent_cost: "Custo",
+    feat_search_placeholder: "Filtrar por nome de feature…",
+    feat_project: "Projeto",
+    feat_feature: "Feature",
+    feat_first: "Primeira",
+    feat_last: "Última",
+    feat_tokens: "Tokens",
+    feat_cost: "Custo",
+    feat_pr: "PR",
+    sess_session: "Sessão",
+    sess_project: "Projeto",
+    sess_feature: "Feature",
+    sess_branch: "Branch",
+    sess_model: "Modelo",
+    sess_start: "Início",
+    sess_tokens: "Tokens",
+    sess_cost: "Custo",
+    prompts_empty: "Sem prompts registrados.",
+    prompts_when: "Quando",
+    prompts_role: "Role",
+    prompts_input: "Input",
+    prompts_output: "Output",
+    prompts_cache_r: "Cache R",
+    prompts_cache_c: "Cache C",
+    prompts_cost: "Custo",
+    proj_project: "Projeto",
+    proj_sessions: "Sessões",
+    proj_tokens: "Tokens",
+    proj_cost: "Custo",
+    proj_pct: "% do total",
+    settings_title: "Configurações",
+    settings_config_hint: "Pricing plan e thresholds vêm de <code>~/.mission-control/config.json</code>.",
+    settings_active_hint: "Sessões com edição nos últimos 5 minutos são marcadas como",
+    settings_edit_hint: "Editar manualmente; reiniciar o dashboard pra aplicar.",
+    settings_lang_label: "Idioma",
+  },
+};
+
+function t(key) {
+  return LOCALES[lang][key] ?? key;
+}
+
+function applyLang() {
+  document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+    el.innerHTML = t(el.dataset.i18nHtml);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+}
+
 // ---------- formatters ----------
-const fmt = (n) => (n == null ? "—" : Number(n).toLocaleString("pt-BR"));
+function fmt(n) {
+  if (n == null) return "—";
+  return Number(n).toLocaleString(lang === "pt" ? "pt-BR" : "en-US");
+}
 const fmtCost = (n) =>
   n == null ? "—" : "$" + Number(n).toFixed(Number(n) < 1 ? 4 : 2);
 const fmtDate = (s) => (s ? s.replace("T", " ").slice(0, 16) : "—");
@@ -73,6 +265,15 @@ document.querySelectorAll("#range-pills button").forEach((btn) => {
   });
 });
 
+document.getElementById("lang-select").addEventListener("change", (e) => {
+  lang = e.target.value;
+  localStorage.setItem("mc_lang", lang);
+  applyLang();
+  loadProjectFilter();
+  loadModelFilter();
+  refresh();
+});
+
 document.getElementById("features-search").addEventListener("input", (e) => {
   const q = e.target.value.trim().toLowerCase();
   document.querySelectorAll("#features-body tr").forEach((tr) => {
@@ -101,11 +302,26 @@ async function loadProjectFilter() {
   const projects = await r.json();
   const sel = document.getElementById("filter-project");
   const current = sel.value;
-  sel.innerHTML = '<option value="">All projects</option>';
+  sel.innerHTML = `<option value="">${t("filter_all_projects")}</option>`;
   for (const p of projects) {
     const opt = document.createElement("option");
     opt.value = p;
     opt.textContent = p;
+    sel.appendChild(opt);
+  }
+  sel.value = current;
+}
+
+async function loadModelFilter() {
+  const r = await fetch("/api/models");
+  const models = await r.json();
+  const sel = document.getElementById("filter-model");
+  const current = sel.value;
+  sel.innerHTML = `<option value="">${t("filter_all_models")}</option>`;
+  for (const m of models) {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m;
     sel.appendChild(opt);
   }
   sel.value = current;
@@ -134,9 +350,9 @@ async function loadDailyWork() {
     xAxis: { type: "category", data: data.map((d) => d.day) },
     yAxis: { type: "value", axisLabel: { formatter: (v) => v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : v } },
     series: [
-      { name: "input", type: "bar", stack: "tokens", data: data.map((d) => d.input_tokens), itemStyle: { color: "#4a7cff" } },
-      { name: "output", type: "bar", stack: "tokens", data: data.map((d) => d.output_tokens), itemStyle: { color: "#a06cff" } },
-      { name: "cache create", type: "bar", stack: "tokens", data: data.map((d) => d.cache_create_tokens), itemStyle: { color: "#ffaa3a" } },
+      { name: t("series_input"), type: "bar", stack: "tokens", data: data.map((d) => d.input_tokens), itemStyle: { color: "#4a7cff" } },
+      { name: t("series_output"), type: "bar", stack: "tokens", data: data.map((d) => d.output_tokens), itemStyle: { color: "#a06cff" } },
+      { name: t("series_cache_create"), type: "bar", stack: "tokens", data: data.map((d) => d.cache_create_tokens), itemStyle: { color: "#ffaa3a" } },
     ],
   });
 }
@@ -152,7 +368,7 @@ async function loadDailyCache() {
     xAxis: { type: "category", data: data.map((d) => d.day) },
     yAxis: { type: "value", axisLabel: { formatter: (v) => v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : v } },
     series: [
-      { name: "cache read", type: "bar", data: data.map((d) => d.cache_read_tokens), itemStyle: { color: "#6cbf6c" } },
+      { name: t("series_cache_read"), type: "bar", data: data.map((d) => d.cache_read_tokens), itemStyle: { color: "#6cbf6c" } },
     ],
   });
 }
@@ -167,8 +383,8 @@ async function loadByProject() {
     yAxis: { type: "category", data: data.map((d) => d.project), axisLabel: { color: "#aaa" } },
     xAxis: { type: "value", axisLabel: { formatter: (v) => v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : v } },
     series: [
-      { name: "input", type: "bar", data: data.map((d) => d.input_tokens), itemStyle: { color: "#4a7cff" } },
-      { name: "output", type: "bar", data: data.map((d) => d.output_tokens), itemStyle: { color: "#a06cff" } },
+      { name: t("series_input"), type: "bar", data: data.map((d) => d.input_tokens), itemStyle: { color: "#4a7cff" } },
+      { name: t("series_output"), type: "bar", data: data.map((d) => d.output_tokens), itemStyle: { color: "#a06cff" } },
     ],
   });
 }
@@ -203,7 +419,7 @@ async function loadByTool() {
   const data = await r.json();
   if (!data.length) {
     chart("chart-by-tool").setOption({
-      title: { text: "Sem dados de tool_use ainda — re-rodar `cli.py scan` após upgrade pra v0.5", left: "center", top: "center", textStyle: { color: "#aaa", fontSize: 13 } },
+      title: { text: t("chart_tool_empty"), left: "center", top: "center", textStyle: { color: "#aaa", fontSize: 13 } },
     });
     return;
   }
@@ -214,13 +430,13 @@ async function loadByTool() {
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "shadow" },
-      formatter: (p) => `${p[0].name}<br/>${fmt(p[0].value)} usos em ${reversed[p[0].dataIndex].sessions} sessões`,
+      formatter: (p) => `${p[0].name}<br/>${fmt(p[0].value)} ${t("chart_tool_uses_in")} ${reversed[p[0].dataIndex].sessions} ${t("chart_tool_sessions_word")}`,
     },
     yAxis: { type: "category", data: reversed.map((d) => d.tool_name), axisLabel: { color: "#aaa" } },
     xAxis: { type: "value", axisLabel: { color: "#aaa", formatter: (v) => v >= 1e3 ? (v / 1e3).toFixed(1) + "k" : v } },
     series: [
       {
-        name: "invocações",
+        name: t("series_invocations"),
         type: "bar",
         data: reversed.map((d) => d.total_count),
         itemStyle: { color: "#4ac4a8" },
@@ -255,7 +471,7 @@ function renderSessionRow(s) {
   tr.className = "expandable";
   if (s.is_active) tr.classList.add("is-active");
   tr.dataset.sessionId = s.session_id;
-  const activeBadge = s.is_active ? '<span class="badge badge-active">Ativa</span>' : "";
+  const activeBadge = s.is_active ? `<span class="badge badge-active">${t("badge_active")}</span>` : "";
   tr.innerHTML = `
     <td></td>
     <td>${activeBadge}<code>${s.session_id.slice(0, 8)}</code></td>
@@ -286,7 +502,7 @@ async function loadRecentSessions() {
   const tbody = document.getElementById("recent-sessions-body");
   tbody.innerHTML = "";
   for (const s of sessions) {
-    const activeBadge = s.is_active ? '<span class="badge badge-active">Ativa</span>' : "";
+    const activeBadge = s.is_active ? `<span class="badge badge-active">${t("badge_active")}</span>` : "";
     const tr = document.createElement("tr");
     if (s.is_active) tr.classList.add("is-active");
     tr.innerHTML = `
@@ -335,13 +551,13 @@ async function toggleSessionDrillDown(tr, sessionId) {
   const detail = document.createElement("tr");
   detail.className = "prompts-row";
   if (prompts.length === 0) {
-    detail.innerHTML = `<td colspan="9" style="padding: 16px;"><span class="muted">Sem prompts registrados.</span></td>`;
+    detail.innerHTML = `<td colspan="9" style="padding: 16px;"><span class="muted">${t("prompts_empty")}</span></td>`;
   } else {
     detail.innerHTML = `
       <td colspan="9">
         <table class="prompts-table">
           <thead>
-            <tr><th>Quando</th><th>Role</th><th>Input</th><th>Output</th><th>Cache R</th><th>Cache C</th><th>Custo</th></tr>
+            <tr><th>${t("prompts_when")}</th><th>${t("prompts_role")}</th><th>${t("prompts_input")}</th><th>${t("prompts_output")}</th><th>${t("prompts_cache_r")}</th><th>${t("prompts_cache_c")}</th><th>${t("prompts_cost")}</th></tr>
           </thead>
           <tbody>
             ${prompts.map((p) => `
@@ -378,5 +594,7 @@ async function refresh() {
   ]);
 }
 
-loadProjectFilter().then(refresh);
+applyLang();
+document.getElementById("lang-select").value = lang;
+Promise.all([loadProjectFilter(), loadModelFilter()]).then(refresh);
 setInterval(refresh, 30_000);

@@ -11,21 +11,18 @@
     <header>
       <h1>Mission Control</h1>
       <nav>
-        <button data-tab="overview" class="active">Overview</button>
-        <button data-tab="features">Features</button>
-        <button data-tab="sessions">Sessions</button>
-        <button data-tab="projects">Projects</button>
-        <button data-tab="settings">Settings</button>
+        <button data-tab="overview" class="active" data-i18n="nav_overview">Overview</button>
+        <button data-tab="features" data-i18n="nav_features">Features</button>
+        <button data-tab="sessions" data-i18n="nav_sessions">Sessions</button>
+        <button data-tab="projects" data-i18n="nav_projects">Projects</button>
+        <button data-tab="settings" data-i18n="nav_settings">Settings</button>
       </nav>
       <div class="filters">
         <select id="filter-project" title="Project">
-          <option value="">All projects</option>
+          <option value="" data-i18n="filter_all_projects">All projects</option>
         </select>
-        <select id="filter-model" title="Model family">
-          <option value="">All models</option>
-          <option value="opus">Opus</option>
-          <option value="sonnet">Sonnet</option>
-          <option value="haiku">Haiku</option>
+        <select id="filter-model" title="Model">
+          <option value="" data-i18n="filter_all_models">All models</option>
         </select>
         <div class="pills" id="range-pills">
           <button data-range="7">7d</button>
@@ -39,69 +36,69 @@
     <main>
       <section id="tab-overview" class="tab active">
         <div class="cards">
-          <div class="card"><div class="card-label">Sessões</div><div class="card-value" id="ov-sessions">—</div></div>
-          <div class="card"><div class="card-label">Turns</div><div class="card-value" id="ov-turns">—</div></div>
-          <div class="card"><div class="card-label">Input</div><div class="card-value" id="ov-input">—</div></div>
-          <div class="card"><div class="card-label">Output</div><div class="card-value" id="ov-output">—</div></div>
-          <div class="card"><div class="card-label">Cache Read</div><div class="card-value" id="ov-cache-read">—</div></div>
-          <div class="card"><div class="card-label">Cache Create</div><div class="card-value" id="ov-cache-create">—</div></div>
-          <div class="card highlight"><div class="card-label">Custo (USD)</div><div class="card-value" id="ov-cost">—</div></div>
+          <div class="card"><div class="card-label" data-i18n="card_sessions">Sessions</div><div class="card-value" id="ov-sessions">—</div></div>
+          <div class="card"><div class="card-label" data-i18n="card_turns">Turns</div><div class="card-value" id="ov-turns">—</div></div>
+          <div class="card"><div class="card-label" data-i18n="card_input">Input</div><div class="card-value" id="ov-input">—</div></div>
+          <div class="card"><div class="card-label" data-i18n="card_output">Output</div><div class="card-value" id="ov-output">—</div></div>
+          <div class="card"><div class="card-label" data-i18n="card_cache_read">Cache Read</div><div class="card-value" id="ov-cache-read">—</div></div>
+          <div class="card"><div class="card-label" data-i18n="card_cache_create">Cache Create</div><div class="card-value" id="ov-cache-create">—</div></div>
+          <div class="card highlight"><div class="card-label" data-i18n="card_cost">Cost (USD)</div><div class="card-value" id="ov-cost">—</div></div>
         </div>
 
         <details class="explainer">
-          <summary>What do these numbers mean? <span class="muted">— click to expand</span></summary>
+          <summary><span data-i18n="explainer_summary">What do these numbers mean?</span> <span class="muted" data-i18n="explainer_expand">— click to expand</span></summary>
           <div class="explainer-body">
             <ul>
-              <li><strong>Sessões</strong> — Conversas Claude Code distintas (1 JSONL = 1 sessão).</li>
-              <li><strong>Turns</strong> — Quantidade de prompts (user → assistant pairs) no período.</li>
-              <li><strong>Input</strong> — Tokens enviados ao modelo. Pricing baseline.</li>
-              <li><strong>Output</strong> — Tokens gerados. Geralmente 5× mais caros que input.</li>
-              <li><strong>Cache Read</strong> — Tokens reutilizados de cache (CLAUDE.md, contexto longo). ~10× mais baratos que input — números altos aqui são <em>bom sinal</em>.</li>
-              <li><strong>Cache Create</strong> — Primeira escrita ao cache. Custa ~1.25× input. Quando crescem muito, indicam prompts iniciais grandes.</li>
-              <li><strong>Custo</strong> — Estimativa em pricing API. Se você usa plano flat (Pro/Max), o custo real é o da assinatura — mude <code>pricing_plan</code> em <code>~/.mission-control/config.json</code>.</li>
+              <li data-i18n-html="explainer_sessions"><strong>Sessions</strong> — Distinct Claude Code conversations (1 JSONL = 1 session).</li>
+              <li data-i18n-html="explainer_turns"><strong>Turns</strong> — Number of prompts (user → assistant pairs) in the period.</li>
+              <li data-i18n-html="explainer_input"><strong>Input</strong> — Tokens sent to the model. Pricing baseline.</li>
+              <li data-i18n-html="explainer_output"><strong>Output</strong> — Generated tokens. Generally 5× more expensive than input.</li>
+              <li data-i18n-html="explainer_cache_read"><strong>Cache Read</strong> — Tokens reused from cache (CLAUDE.md, long context). ~10× cheaper than input — high numbers here are a <em>good sign</em>.</li>
+              <li data-i18n-html="explainer_cache_create"><strong>Cache Create</strong> — First write to cache. Costs ~1.25× input. When they grow a lot, they indicate large initial prompts.</li>
+              <li data-i18n-html="explainer_cost"><strong>Cost</strong> — API pricing estimate. If you use a flat plan (Pro/Max), the real cost is your subscription — change <code>pricing_plan</code> in <code>~/.mission-control/config.json</code>.</li>
             </ul>
           </div>
         </details>
 
         <div class="charts charts-2col">
           <div class="chart-box">
-            <h3>Daily work — Input + Output + Cache Create</h3>
+            <h3 data-i18n="chart_daily_work">Daily work — Input + Output + Cache Create</h3>
             <div id="chart-daily-work" class="chart"></div>
           </div>
           <div class="chart-box">
-            <h3>Daily cache reads <span class="muted">(separado — ordens de grandeza maior)</span></h3>
+            <h3><span data-i18n="chart_daily_cache">Daily cache reads</span> <span class="muted" data-i18n="chart_daily_cache_sub">(separate — orders of magnitude larger)</span></h3>
             <div id="chart-daily-cache" class="chart"></div>
           </div>
         </div>
 
         <div class="charts charts-2col">
           <div class="chart-box">
-            <h3>Tokens by project — Input vs Output</h3>
+            <h3 data-i18n="chart_by_project">Tokens by project — Input vs Output</h3>
             <div id="chart-by-project" class="chart"></div>
           </div>
           <div class="chart-box">
-            <h3>Token usage by model</h3>
+            <h3 data-i18n="chart_by_model">Token usage by model</h3>
             <div id="chart-by-model" class="chart"></div>
           </div>
         </div>
 
         <div class="chart-box">
-          <h3>Top tools <span class="muted">— invocações por ferramenta (todas as sessões filtradas)</span></h3>
+          <h3><span data-i18n="chart_top_tools">Top tools</span> <span class="muted" data-i18n="chart_top_tools_sub">— invocations per tool (all filtered sessions)</span></h3>
           <div id="chart-by-tool" class="chart"></div>
         </div>
 
         <div class="chart-box">
-          <h3>Recent sessions <span class="muted">— últimas 8</span></h3>
+          <h3><span data-i18n="chart_recent">Recent sessions</span> <span class="muted" data-i18n="chart_recent_sub">— last 8</span></h3>
           <table id="recent-sessions-table" class="compact">
             <thead>
               <tr>
                 <th></th>
-                <th>Início</th>
-                <th>Projeto</th>
-                <th>Feature</th>
-                <th>Modelo</th>
-                <th>Tokens</th>
-                <th>Custo</th>
+                <th data-i18n="recent_start">Start</th>
+                <th data-i18n="recent_project">Project</th>
+                <th data-i18n="recent_feature">Feature</th>
+                <th data-i18n="recent_model">Model</th>
+                <th data-i18n="recent_tokens">Tokens</th>
+                <th data-i18n="recent_cost">Cost</th>
               </tr>
             </thead>
             <tbody id="recent-sessions-body"></tbody>
@@ -111,18 +108,18 @@
 
       <section id="tab-features" class="tab">
         <div class="toolbar">
-          <input type="text" id="features-search" placeholder="Filter by feature name…" />
+          <input type="text" id="features-search" data-i18n-placeholder="feat_search_placeholder" placeholder="Filter by feature name…" />
         </div>
         <table>
           <thead>
             <tr>
-              <th>Projeto</th>
-              <th>Feature</th>
-              <th>Primeira</th>
-              <th>Última</th>
-              <th>Tokens</th>
-              <th>Custo</th>
-              <th>PR</th>
+              <th data-i18n="feat_project">Project</th>
+              <th data-i18n="feat_feature">Feature</th>
+              <th data-i18n="feat_first">First</th>
+              <th data-i18n="feat_last">Last</th>
+              <th data-i18n="feat_tokens">Tokens</th>
+              <th data-i18n="feat_cost">Cost</th>
+              <th data-i18n="feat_pr">PR</th>
             </tr>
           </thead>
           <tbody id="features-body"></tbody>
@@ -134,14 +131,14 @@
           <thead>
             <tr>
               <th></th>
-              <th>Sessão</th>
-              <th>Projeto</th>
-              <th>Feature</th>
-              <th>Branch</th>
-              <th>Modelo</th>
-              <th>Início</th>
-              <th>Tokens</th>
-              <th>Custo</th>
+              <th data-i18n="sess_session">Session</th>
+              <th data-i18n="sess_project">Project</th>
+              <th data-i18n="sess_feature">Feature</th>
+              <th data-i18n="sess_branch">Branch</th>
+              <th data-i18n="sess_model">Model</th>
+              <th data-i18n="sess_start">Start</th>
+              <th data-i18n="sess_tokens">Tokens</th>
+              <th data-i18n="sess_cost">Cost</th>
             </tr>
           </thead>
           <tbody id="sessions-body"></tbody>
@@ -152,11 +149,11 @@
         <table>
           <thead>
             <tr>
-              <th>Projeto</th>
-              <th>Sessões</th>
-              <th>Tokens</th>
-              <th>Custo</th>
-              <th>% do total</th>
+              <th data-i18n="proj_project">Project</th>
+              <th data-i18n="proj_sessions">Sessions</th>
+              <th data-i18n="proj_tokens">Tokens</th>
+              <th data-i18n="proj_cost">Cost</th>
+              <th data-i18n="proj_pct">% of total</th>
             </tr>
           </thead>
           <tbody id="projects-body"></tbody>
@@ -164,10 +161,17 @@
       </section>
 
       <section id="tab-settings" class="tab">
-        <h2>Settings</h2>
-        <p>Pricing plan e thresholds vêm de <code>~/.mission-control/config.json</code>.</p>
-        <p>Sessões com edição nos últimos 5 minutos são marcadas como <span class="badge badge-active">ATIVA</span>.</p>
-        <pre id="settings-cfg">Editar manualmente; reiniciar o dashboard pra aplicar.</pre>
+        <h2 data-i18n="settings_title">Settings</h2>
+        <div class="settings-row">
+          <label for="lang-select" data-i18n="settings_lang_label">Language</label>
+          <select id="lang-select">
+            <option value="en">English</option>
+            <option value="pt">Português</option>
+          </select>
+        </div>
+        <p data-i18n-html="settings_config_hint">Pricing plan and thresholds come from <code>~/.mission-control/config.json</code>.</p>
+        <p><span data-i18n="settings_active_hint">Sessions edited in the last 5 minutes are marked as</span> <span class="badge badge-active" data-i18n="badge_active">Active</span>.</p>
+        <pre id="settings-cfg" data-i18n="settings_edit_hint">Edit manually; restart the dashboard to apply.</pre>
       </section>
     </main>
 

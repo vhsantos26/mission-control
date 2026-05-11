@@ -164,3 +164,5 @@ code { background: #18181b; padding: 1px 6px; border-radius: 4px; font-size: 13p
 .muted { color: #666; font-weight: normal; font-size: 11px; }
 a { color: #4a7cff; text-decoration: none; }
 a:hover { text-decoration: underline; }
+.settings-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.settings-row label { font-size: 0.9rem; color: #aaa; min-width: 80px; }
