@@ -1,35 +1,34 @@
 # Backlog — Mission Control
 
-Este arquivo é o “single source of truth” do que falta fazer. Mantém ideias, bugs, dívida técnica e itens priorizados.
+This file is the single source of truth for pending work. Tracks ideas, bugs, tech debt, and prioritized items.
 
-## Now (próximo a atacar)
+## Now (next to tackle)
 
-- [ ] Segurança: bloquear path traversal em `src/server.py` ao servir `/static/*`
-- [ ] Config: validação de `~/.mission-control/config.json` (tipos, ranges, defaults)
-- [ ] Scan: otimizar re-scan (evitar reparse completo quando nada mudou)
+- [ ] Security: block path traversal in `src/server.py` when serving `/static/*`
+- [ ] Config: validate `~/.mission-control/config.json` (types, ranges, defaults)
+- [ ] Scan: optimize re-scan (avoid full reparse when nothing changed)
 
-## Next (depois)
+## Next (after)
 
-- [ ] Scan incremental por mtime (processar só JSONL alterados; lidar com deletes)
-- [ ] SQLite: ativar `PRAGMA foreign_keys=ON` e reforçar integridade
-- [ ] Features: wiring opcional de PR enrichment via `gh` (com cache e timeout curto)
-- [ ] Export: endpoints e UI para export CSV/JSON por aba
+- [ ] Incremental scan by mtime (process only changed JSONLs; handle deletes)
+- [ ] SQLite: enable `PRAGMA foreign_keys=ON` and tighten integrity
+- [ ] Features: optional PR enrichment wiring via `gh` (with cache and short timeout)
+- [ ] Export: endpoints and UI for CSV/JSON export per tab
 
 ## Later / Icebox
 
-- [ ] Normalização de timestamps (ISO 8601 consistente entre sources)
-- [ ] Mais filtros na UI (ex.: “somente ativas”, match exato de modelo)
-- [ ] Métricas avançadas (ex.: custo por dia por feature, custo por ferramenta por feature)
+- [ ] Timestamp normalization (consistent ISO 8601 across sources)
+- [ ] More UI filters (e.g., "active only", exact model match)
+- [ ] Advanced metrics (e.g., cost per day per feature, cost per tool per feature)
 
-## Bugs / Incidentes (com repro)
+## Bugs / Incidents (with repro)
 
-- (adicione aqui com passos de repro e expectativa)
+- (add here with repro steps and expectation)
 
-## Dívida técnica
+## Tech debt
 
-- (itens que não mudam features, mas reduzem risco/manutenção)
+- (items that don't change features but reduce risk/maintenance)
 
-## Notas / Decisões
+## Notes / Decisions
 
-- (decisões arquiteturais curtas e o porquê)
-
+- (short architectural decisions and the why)
