@@ -9,6 +9,9 @@ const LOCALES = {
     nav_projects: "Projects",
     nav_settings: "Settings",
     filter_all_projects: "All projects",
+    filter_clear_projects: "Clear selection",
+    filter_one_project: "1 project",
+    filter_n_projects: "{n} projects",
     filter_all_models: "All models",
     card_sessions: "Sessions",
     card_turns: "Turns",
@@ -27,8 +30,9 @@ const LOCALES = {
     explainer_cache_create: "<strong>Cache Create</strong> — First write to cache. Costs ~1.25× input. When they grow a lot, they indicate large initial prompts.",
     explainer_cost: "<strong>Cost</strong> — API pricing estimate. If you use a flat plan (Pro/Max), the real cost is your subscription — change <code>pricing_plan</code> in <code>~/.mission-control/config.json</code>.",
     chart_daily_work: "Daily work — Input + Output + Cache Create",
-    chart_daily_cache: "Daily cache reads",
-    chart_daily_cache_sub: "(separate — orders of magnitude larger)",
+    chart_daily_cache: "Daily cache — Create vs Read",
+    chart_daily_cache_sub: "(dual axis — read is typically 10–100× larger)",
+    cache_ratio_label: "Ratio",
     chart_by_project: "Tokens by project — Input vs Output",
     chart_by_model: "Token usage by model",
     chart_top_tools: "Top tools",
@@ -92,6 +96,9 @@ const LOCALES = {
     nav_projects: "Projetos",
     nav_settings: "Configurações",
     filter_all_projects: "Todos os projetos",
+    filter_clear_projects: "Limpar seleção",
+    filter_one_project: "1 projeto",
+    filter_n_projects: "{n} projetos",
     filter_all_models: "Todos os modelos",
     card_sessions: "Sessões",
     card_turns: "Turns",
@@ -110,8 +117,9 @@ const LOCALES = {
     explainer_cache_create: "<strong>Cache Create</strong> — Primeira escrita ao cache. Custa ~1.25× input. Quando crescem muito, indicam prompts iniciais grandes.",
     explainer_cost: "<strong>Custo</strong> — Estimativa em pricing API. Se você usa plano flat (Pro/Max), o custo real é o da assinatura — mude <code>pricing_plan</code> em <code>~/.mission-control/config.json</code>.",
     chart_daily_work: "Trabalho diário — Input + Output + Cache Create",
-    chart_daily_cache: "Cache reads diários",
-    chart_daily_cache_sub: "(separado — ordens de grandeza maior)",
+    chart_daily_cache: "Cache diário — Create vs Read",
+    chart_daily_cache_sub: "(eixo duplo — read costuma ser 10–100× maior)",
+    cache_ratio_label: "Razão",
     chart_by_project: "Tokens por projeto — Input vs Output",
     chart_by_model: "Uso de tokens por modelo",
     chart_top_tools: "Top tools",
@@ -198,7 +206,7 @@ const fmtDate = (s) => (s ? s.replace("T", " ").slice(0, 16) : "—");
 
 // ---------- filter state ----------
 const filters = {
-  project: "",
+  project: [],
   model: "",
   rangeDays: 30,
 };
@@ -214,7 +222,7 @@ function sinceUntil() {
 function qsObj(extra = {}) {
   const { since, until } = sinceUntil();
   const o = {};
-  if (filters.project) o.project = filters.project;
+  if (filters.project && filters.project.length) o.project = filters.project;
   if (filters.model) o.model = filters.model;
   if (since) o.since = since;
   if (until) o.until = until;
@@ -224,7 +232,12 @@ function qsObj(extra = {}) {
 function qs(extra = {}) {
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(qsObj(extra))) {
-    if (v != null && v !== "") params.set(k, v);
+    if (v == null || v === "") continue;
+    if (Array.isArray(v)) {
+      for (const item of v) if (item) params.append(k, item);
+    } else {
+      params.set(k, v);
+    }
   }
   const s = params.toString();
   return s ? "?" + s : "";
@@ -246,10 +259,40 @@ document.querySelectorAll("nav button").forEach((btn) => {
 });
 
 // ---------- filter wiring ----------
-document.getElementById("filter-project").addEventListener("change", (e) => {
-  filters.project = e.target.value;
-  refresh();
+const projectMs = {
+  root: document.getElementById("filter-project"),
+  toggle: document.querySelector("#filter-project .ms-toggle"),
+  label: document.querySelector("#filter-project .ms-label"),
+  panel: document.querySelector("#filter-project .ms-panel"),
+};
+
+function updateProjectLabel() {
+  const n = filters.project.length;
+  if (n === 0) projectMs.label.textContent = t("filter_all_projects");
+  else if (n === 1) projectMs.label.textContent = filters.project[0];
+  else projectMs.label.textContent = t("filter_n_projects").replace("{n}", n);
+}
+
+function openProjectPanel() {
+  projectMs.panel.hidden = false;
+  projectMs.toggle.setAttribute("aria-expanded", "true");
+}
+
+function closeProjectPanel() {
+  projectMs.panel.hidden = true;
+  projectMs.toggle.setAttribute("aria-expanded", "false");
+}
+
+projectMs.toggle.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (projectMs.panel.hidden) openProjectPanel();
+  else closeProjectPanel();
 });
+
+document.addEventListener("click", (e) => {
+  if (!projectMs.root.contains(e.target)) closeProjectPanel();
+});
+
 document.getElementById("filter-model").addEventListener("change", (e) => {
   filters.model = e.target.value;
   refresh();
@@ -271,6 +314,7 @@ document.getElementById("lang-select").addEventListener("change", (e) => {
   applyLang();
   loadProjectFilter();
   loadModelFilter();
+  updateProjectLabel();
   refresh();
 });
 
@@ -292,7 +336,15 @@ function chart(id) {
   return charts[id];
 }
 function resizeAllCharts() {
-  for (const c of Object.values(charts)) c && c.resize();
+  // Skip charts whose container is display:none — resizing them captures 0x0
+  // and corrupts the canvas for the next render. offsetParent is null when
+  // the element (or any ancestor) is display:none.
+  for (const [id, c] of Object.entries(charts)) {
+    if (!c) continue;
+    const el = document.getElementById(id);
+    if (!el || el.offsetParent === null) continue;
+    c.resize();
+  }
 }
 window.addEventListener("resize", resizeAllCharts);
 
@@ -300,16 +352,47 @@ window.addEventListener("resize", resizeAllCharts);
 async function loadProjectFilter() {
   const r = await fetch("/api/projects");
   const projects = await r.json();
-  const sel = document.getElementById("filter-project");
-  const current = sel.value;
-  sel.innerHTML = `<option value="">${t("filter_all_projects")}</option>`;
+  // Drop selections that no longer exist (e.g. after a rescan).
+  filters.project = filters.project.filter((p) => projects.includes(p));
+  projectMs.panel.innerHTML = "";
+
+  const clear = document.createElement("div");
+  clear.className = "ms-option ms-clear";
+  clear.textContent = t("filter_clear_projects");
+  clear.addEventListener("click", (e) => {
+    e.stopPropagation();
+    filters.project = [];
+    for (const cb of projectMs.panel.querySelectorAll("input[type=checkbox]")) {
+      cb.checked = false;
+    }
+    updateProjectLabel();
+    refresh();
+  });
+  projectMs.panel.appendChild(clear);
+
   for (const p of projects) {
-    const opt = document.createElement("option");
-    opt.value = p;
-    opt.textContent = p;
-    sel.appendChild(opt);
+    const opt = document.createElement("label");
+    opt.className = "ms-option";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = p;
+    cb.checked = filters.project.includes(p);
+    cb.addEventListener("change", () => {
+      if (cb.checked) {
+        if (!filters.project.includes(p)) filters.project.push(p);
+      } else {
+        filters.project = filters.project.filter((x) => x !== p);
+      }
+      updateProjectLabel();
+      refresh();
+    });
+    const text = document.createElement("span");
+    text.textContent = p;
+    opt.appendChild(cb);
+    opt.appendChild(text);
+    projectMs.panel.appendChild(opt);
   }
-  sel.value = current;
+  updateProjectLabel();
 }
 
 async function loadModelFilter() {
@@ -361,22 +444,81 @@ async function loadDailyCache() {
   const days = filters.rangeDays || 30;
   const r = await fetch("/api/daily-cost?days=" + days + (qs() && "&" + qs().slice(1)));
   const data = await r.json();
+  const axisFmt = (v) =>
+    v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : v;
   chart("chart-daily-cache").setOption({
-    grid: { left: 60, right: 20, top: 30, bottom: 30 },
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    grid: { left: 60, right: 60, top: 30, bottom: 30 },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+      formatter: (params) => {
+        const create = params.find((p) => p.seriesIndex === 0)?.value || 0;
+        const read = params.find((p) => p.seriesIndex === 1)?.value || 0;
+        const ratio = create ? (read / create).toFixed(0) + "×" : "—";
+        return `${params[0].name}<br/>` +
+          `<span style="color:#ffaa3a">●</span> ${t("series_cache_create")}: ${fmt(create)}<br/>` +
+          `<span style="color:#6cbf6c">●</span> ${t("series_cache_read")}: ${fmt(read)}<br/>` +
+          `<span style="color:#888">${t("cache_ratio_label")}: ${ratio}</span>`;
+      },
+    },
     legend: { top: 0, textStyle: { color: "#aaa" } },
     xAxis: { type: "category", data: data.map((d) => d.day) },
-    yAxis: { type: "value", axisLabel: { formatter: (v) => v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : v } },
+    yAxis: [
+      {
+        type: "value",
+        position: "left",
+        nameTextStyle: { color: "#ffaa3a" },
+        axisLabel: { color: "#ffaa3a", formatter: axisFmt },
+        splitLine: { lineStyle: { color: "#222" } },
+      },
+      {
+        type: "value",
+        position: "right",
+        nameTextStyle: { color: "#6cbf6c" },
+        axisLabel: { color: "#6cbf6c", formatter: axisFmt },
+        splitLine: { show: false },
+      },
+    ],
     series: [
-      { name: t("series_cache_read"), type: "bar", data: data.map((d) => d.cache_read_tokens), itemStyle: { color: "#6cbf6c" } },
+      {
+        name: t("series_cache_create"),
+        type: "bar",
+        yAxisIndex: 0,
+        data: data.map((d) => d.cache_create_tokens),
+        itemStyle: { color: "#ffaa3a" },
+      },
+      {
+        name: t("series_cache_read"),
+        type: "bar",
+        yAxisIndex: 1,
+        data: data.map((d) => d.cache_read_tokens),
+        itemStyle: { color: "#6cbf6c" },
+      },
     ],
   });
 }
 
 async function loadByProject() {
+  const box = document.getElementById("chart-by-project").closest(".chart-box");
+  // Tautological when filtered to a single project — hide the card entirely.
+  if (filters.project.length === 1) {
+    box.classList.add("hidden");
+    // Neighbor expands via CSS :has(); resize it after layout.
+    requestAnimationFrame(() => charts["chart-by-model"]?.resize());
+    return;
+  }
+  box.classList.remove("hidden");
   const r = await fetch("/api/by-project" + qs());
   const data = await r.json();
-  chart("chart-by-project").setOption({
+  // Concurrent clicks can leave the canvas out of sync with the container.
+  // Wait one frame so any pending layout settles, then force a resize before
+  // drawing — otherwise ECharts may keep stale dimensions captured while the
+  // card was hidden.
+  await new Promise((r) => requestAnimationFrame(r));
+  const c = chart("chart-by-project");
+  c.resize();
+  charts["chart-by-model"]?.resize();
+  c.setOption({
     grid: { left: 100, right: 20, top: 30, bottom: 30 },
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
     legend: { top: 0, textStyle: { color: "#aaa" } },
@@ -426,13 +568,22 @@ async function loadByTool() {
   // Reverse so largest count appears at the TOP of the horizontal bar (yAxis renders bottom-up)
   const reversed = [...data].reverse();
   chart("chart-by-tool").setOption({
-    grid: { left: 130, right: 60, top: 20, bottom: 30 },
+    grid: { left: 210, right: 60, top: 20, bottom: 30 },
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "shadow" },
       formatter: (p) => `${p[0].name}<br/>${fmt(p[0].value)} ${t("chart_tool_uses_in")} ${reversed[p[0].dataIndex].sessions} ${t("chart_tool_sessions_word")}`,
     },
-    yAxis: { type: "category", data: reversed.map((d) => d.tool_name), axisLabel: { color: "#aaa" } },
+    yAxis: {
+      type: "category",
+      data: reversed.map((d) => d.tool_name),
+      axisLabel: {
+        color: "#aaa",
+        // Names like "chrome-devtools__take_snapshot" overflow the gutter;
+        // truncate visually — full name is still in the tooltip.
+        formatter: (name) => (name.length > 28 ? name.slice(0, 26) + "…" : name),
+      },
+    },
     xAxis: { type: "value", axisLabel: { color: "#aaa", formatter: (v) => v >= 1e3 ? (v / 1e3).toFixed(1) + "k" : v } },
     series: [
       {
@@ -496,8 +647,7 @@ async function loadSessions() {
 }
 
 async function loadRecentSessions() {
-  // Recent sessions widget on Overview — always shows last 8 across all projects/models
-  const r = await fetch("/api/sessions?limit=8");
+  const r = await fetch("/api/sessions?limit=8" + (qs() && "&" + qs().slice(1)));
   const sessions = await r.json();
   const tbody = document.getElementById("recent-sessions-body");
   tbody.innerHTML = "";

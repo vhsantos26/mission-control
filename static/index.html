@@ -18,9 +18,13 @@
         <button data-tab="settings" data-i18n="nav_settings">Settings</button>
       </nav>
       <div class="filters">
-        <select id="filter-project" title="Project">
-          <option value="" data-i18n="filter_all_projects">All projects</option>
-        </select>
+        <div class="multi-select" id="filter-project" title="Project">
+          <button type="button" class="ms-toggle" aria-haspopup="listbox" aria-expanded="false">
+            <span class="ms-label" data-i18n="filter_all_projects">All projects</span>
+            <span class="ms-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="ms-panel" role="listbox" aria-multiselectable="true" hidden></div>
+        </div>
         <select id="filter-model" title="Model">
           <option value="" data-i18n="filter_all_models">All models</option>
         </select>
@@ -66,7 +70,7 @@
             <div id="chart-daily-work" class="chart"></div>
           </div>
           <div class="chart-box">
-            <h3><span data-i18n="chart_daily_cache">Daily cache reads</span> <span class="muted" data-i18n="chart_daily_cache_sub">(separate — orders of magnitude larger)</span></h3>
+            <h3><span data-i18n="chart_daily_cache">Daily cache — Create vs Read</span> <span class="muted" data-i18n="chart_daily_cache_sub">(dual axis — read is typically 10–100× larger)</span></h3>
             <div id="chart-daily-cache" class="chart"></div>
           </div>
         </div>

@@ -36,6 +36,11 @@ def _make_handler(db_path: Path):
                 v = qs.get(name)
                 return v[0] if v and v[0] else None
 
+            def many(name: str) -> list[str] | None:
+                v = qs.get(name)
+                values = [x for x in v if x] if v else []
+                return values or None
+
             if parsed.path in ("/", "/index.html"):
                 self._serve_static("index.html", "text/html; charset=utf-8")
             elif parsed.path.startswith("/static/"):
@@ -44,7 +49,7 @@ def _make_handler(db_path: Path):
                 self._json(
                     query_overview(
                         db_path,
-                        project=first("project"),
+                        project=many("project"),
                         model=first("model"),
                         since=first("since"),
                         until=first("until"),
@@ -54,7 +59,7 @@ def _make_handler(db_path: Path):
                 self._json(
                     query_features(
                         db_path,
-                        project=first("project"),
+                        project=many("project"),
                         model=first("model"),
                         since=first("since"),
                         until=first("until"),
@@ -66,7 +71,7 @@ def _make_handler(db_path: Path):
                     query_sessions(
                         db_path,
                         limit=limit,
-                        project=first("project"),
+                        project=many("project"),
                         feature=first("feature"),
                         model=first("model"),
                         since=first("since"),
@@ -84,7 +89,7 @@ def _make_handler(db_path: Path):
                     query_daily_cost(
                         db_path,
                         days=days,
-                        project=first("project"),
+                        project=many("project"),
                         model=first("model"),
                     )
                 )
@@ -92,6 +97,7 @@ def _make_handler(db_path: Path):
                 self._json(
                     query_tokens_by_project(
                         db_path,
+                        project=many("project"),
                         model=first("model"),
                         since=first("since"),
                         until=first("until"),
@@ -101,7 +107,7 @@ def _make_handler(db_path: Path):
                 self._json(
                     query_by_model(
                         db_path,
-                        project=first("project"),
+                        project=many("project"),
                         since=first("since"),
                         until=first("until"),
                     )
@@ -110,7 +116,7 @@ def _make_handler(db_path: Path):
                 self._json(
                     query_tool_usage(
                         db_path,
-                        project=first("project"),
+                        project=many("project"),
                         feature=first("feature"),
                         model=first("model"),
                         since=first("since"),

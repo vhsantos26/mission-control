@@ -285,8 +285,27 @@ def delete_sessions_except(db_path: Path, keep_ids: set[str]) -> int:
         return deleted
 
 
+def _project_predicate(
+    project: str | list[str] | None,
+) -> tuple[str | None, list[str]]:
+    """Return ``(sql, params)`` for filtering by one or many project names.
+
+    Accepts a single string (back-compat) or a list. An empty/None value
+    disables the filter. Multi-select uses ``IN (?, ?, ...)``.
+    """
+    if not project:
+        return None, []
+    projects = [project] if isinstance(project, str) else [p for p in project if p]
+    if not projects:
+        return None, []
+    if len(projects) == 1:
+        return "project = ?", [projects[0]]
+    placeholders = ",".join(["?"] * len(projects))
+    return f"project IN ({placeholders})", projects
+
+
 def _filter_clause(
-    project: str | None = None,
+    project: str | list[str] | None = None,
     feature: str | None = None,
     model: str | None = None,
     since: str | None = None,
@@ -295,13 +314,15 @@ def _filter_clause(
     """Build WHERE clause + params for common filters.
 
     ``model`` matches by family substring: passing "opus" matches "claude-opus-4-7"
-    and "claude-opus-4-6" alike.
+    and "claude-opus-4-6" alike. ``project`` accepts a single name or a list
+    (multi-select).
     """
     conditions: list[str] = []
     params: list = []
-    if project:
-        conditions.append("project = ?")
-        params.append(project)
+    proj_sql, proj_params = _project_predicate(project)
+    if proj_sql:
+        conditions.append(proj_sql)
+        params.extend(proj_params)
     if feature:
         conditions.append("(feature = ? OR feature LIKE ?)")
         params.extend([feature, f"%{feature}%"])
@@ -320,7 +341,7 @@ def _filter_clause(
 
 def query_overview(
     db_path: Path,
-    project: str | None = None,
+    project: str | list[str] | None = None,
     model: str | None = None,
     since: str | None = None,
     until: str | None = None,
@@ -360,7 +381,7 @@ def query_overview(
 
 def query_tool_usage(
     db_path: Path,
-    project: str | None = None,
+    project: str | list[str] | None = None,
     feature: str | None = None,
     model: str | None = None,
     since: str | None = None,
@@ -396,7 +417,7 @@ def query_tool_usage(
 
 def query_features(
     db_path: Path,
-    project: str | None = None,
+    project: str | list[str] | None = None,
     model: str | None = None,
     since: str | None = None,
     until: str | None = None,
@@ -430,9 +451,10 @@ def query_features(
     # Fast path: read pre-aggregated features table
     where_parts: list[str] = []
     params: list = []
-    if project:
-        where_parts.append("project = ?")
-        params.append(project)
+    proj_sql, proj_params = _project_predicate(project)
+    if proj_sql:
+        where_parts.append(proj_sql)
+        params.extend(proj_params)
     where = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
     with _connect(db_path) as conn:
         rows = conn.execute(
@@ -451,7 +473,7 @@ def query_features(
 def query_sessions(
     db_path: Path,
     limit: int = 100,
-    project: str | None = None,
+    project: str | list[str] | None = None,
     feature: str | None = None,
     model: str | None = None,
     since: str | None = None,
@@ -516,15 +538,16 @@ def query_session_prompts(db_path: Path, session_id: str) -> list[dict]:
 def query_daily_cost(
     db_path: Path,
     days: int = 30,
-    project: str | None = None,
+    project: str | list[str] | None = None,
     model: str | None = None,
 ) -> list[dict]:
     """Daily breakdown for the last N days. Returns input/output/cache_create/cache_read split per day."""
     where_parts = ["started_at IS NOT NULL"]
     params: list = []
-    if project:
-        where_parts.append("project = ?")
-        params.append(project)
+    proj_sql, proj_params = _project_predicate(project)
+    if proj_sql:
+        where_parts.append(proj_sql)
+        params.extend(proj_params)
     if model:
         where_parts.append("model LIKE ?")
         params.append(f"%{model}%")
@@ -553,12 +576,13 @@ def query_daily_cost(
 
 def query_tokens_by_project(
     db_path: Path,
+    project: str | list[str] | None = None,
     model: str | None = None,
     since: str | None = None,
     until: str | None = None,
 ) -> list[dict]:
     """Per-project totals for stacked input/output bar chart and Projects tab."""
-    where, params = _filter_clause(model=model, since=since, until=until)
+    where, params = _filter_clause(project=project, model=model, since=since, until=until)
     with _connect(db_path) as conn:
         rows = conn.execute(
             f"""
@@ -582,7 +606,7 @@ def query_tokens_by_project(
 
 def query_by_model(
     db_path: Path,
-    project: str | None = None,
+    project: str | list[str] | None = None,
     since: str | None = None,
     until: str | None = None,
 ) -> list[dict]:

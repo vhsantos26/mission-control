@@ -212,3 +212,27 @@ def test_query_tokens_by_project_includes_session_count(tmp_path):
     by_project = {r["project"]: r for r in rows}
     assert by_project["alpha"]["sessions"] == 2
     assert by_project["beta"]["sessions"] == 1
+
+
+def test_query_filters_accept_project_list(tmp_path):
+    """Multi-select: passing a list narrows to those projects via SQL IN (...)."""
+    db = tmp_path / "test.sqlite"
+    init_db(db)
+    upsert_session(db, _make_session("s1", project="alpha"), feature="foo")
+    upsert_session(db, _make_session("s2", project="beta"), feature="foo")
+    upsert_session(db, _make_session("s3", project="gamma"), feature="foo")
+
+    rows = query_tokens_by_project(db, project=["alpha", "gamma"])
+    names = {r["project"] for r in rows}
+    assert names == {"alpha", "gamma"}
+
+    sessions = query_sessions(db, project=["alpha", "gamma"])
+    assert {s["project"] for s in sessions} == {"alpha", "gamma"}
+
+    # Single-string still works (back-compat with old callers).
+    only_alpha = query_tokens_by_project(db, project="alpha")
+    assert {r["project"] for r in only_alpha} == {"alpha"}
+
+    # Empty list / None disable the filter entirely.
+    all_rows = query_tokens_by_project(db, project=[])
+    assert {r["project"] for r in all_rows} == {"alpha", "beta", "gamma"}
