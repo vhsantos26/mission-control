@@ -163,7 +163,7 @@ def main() -> int:
         port = int(cfg.get("port", 8080))
         url = f"http://127.0.0.1:{port}"
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
-        serve(DB_FILE, port=port)
+        serve(DB_FILE, port=port, cfg=cfg)
         return 0
 
     return 0

@@ -7,10 +7,17 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from src.db import (
+    insert_ext_usage,
     query_by_model,
     query_daily_cost,
     query_distinct_models,
     query_distinct_projects,
+    query_ext_by_source,
+    query_ext_by_task,
+    query_ext_daily,
+    query_ext_overview,
+    query_ext_recent,
+    query_ext_sources,
     query_features,
     query_overview,
     query_session_prompts,
@@ -24,10 +31,53 @@ STATIC_DIR = Path(__file__).parent.parent / "static"
 log = logging.getLogger("mc.server")
 
 
-def _make_handler(db_path: Path):
-    """Build a Handler class bound to the given DB path."""
+def _make_handler(db_path: Path, cfg: dict):
+    """Build a Handler class bound to the given DB path and config."""
 
     class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):  # noqa: N802
+            parsed = urlparse(self.path)
+            if parsed.path != "/api/intake/usage":
+                self.send_error(404)
+                return
+
+            token = cfg.get("intake_token")
+            if token:
+                auth = self.headers.get("Authorization", "")
+                if auth != f"Bearer {token}":
+                    self.send_error(401)
+                    return
+
+            length = int(self.headers.get("Content-Length", 0))
+            if not length:
+                self.send_error(400)
+                return
+
+            try:
+                data = json.loads(self.rfile.read(length))
+            except json.JSONDecodeError:
+                self.send_error(400)
+                return
+
+            records = data if isinstance(data, list) else [data]
+            for rec in records:
+                if not rec.get("source"):
+                    self.send_error(422)
+                    return
+                try:
+                    insert_ext_usage(db_path, rec)
+                except Exception as e:
+                    log.warning("intake insert failed: %s", e)
+                    self.send_error(500)
+                    return
+
+            body = b"{}"
+            self.send_response(201)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
         def do_GET(self):  # noqa: N802 (BaseHTTPRequestHandler API)
             parsed = urlparse(self.path)
             qs = parse_qs(parsed.query)
@@ -128,6 +178,46 @@ def _make_handler(db_path: Path):
                 self._json(query_distinct_projects(db_path))
             elif parsed.path == "/api/models":
                 self._json(query_distinct_models(db_path))
+            elif parsed.path == "/api/ext/overview":
+                self._json(
+                    query_ext_overview(
+                        db_path,
+                        source=first("source"),
+                        model=first("model"),
+                        since=first("since"),
+                        until=first("until"),
+                    )
+                )
+            elif parsed.path == "/api/ext/daily":
+                days = int(qs.get("days", ["30"])[0])
+                self._json(query_ext_daily(db_path, days=days, source=first("source"), model=first("model")))
+            elif parsed.path == "/api/ext/by-source":
+                self._json(
+                    query_ext_by_source(
+                        db_path,
+                        model=first("model"),
+                        since=first("since"),
+                        until=first("until"),
+                    )
+                )
+            elif parsed.path == "/api/ext/by-task":
+                limit = int(qs.get("limit", ["30"])[0])
+                self._json(
+                    query_ext_by_task(
+                        db_path,
+                        source=first("source"),
+                        agent=first("agent"),
+                        model=first("model"),
+                        since=first("since"),
+                        until=first("until"),
+                        limit=limit,
+                    )
+                )
+            elif parsed.path == "/api/ext/sources":
+                self._json(query_ext_sources(db_path))
+            elif parsed.path == "/api/ext/recent":
+                limit = int(qs.get("limit", ["8"])[0])
+                self._json(query_ext_recent(db_path, limit=limit))
             else:
                 self.send_error(404)
 
@@ -167,7 +257,7 @@ def _make_handler(db_path: Path):
     return Handler
 
 
-def serve(db_path: Path, port: int = 8080) -> None:
-    handler = _make_handler(db_path)
+def serve(db_path: Path, port: int = 8080, cfg: dict | None = None) -> None:
+    handler = _make_handler(db_path, cfg or {})
     log.info("serving on http://127.0.0.1:%d", port)
     HTTPServer(("127.0.0.1", port), handler).serve_forever()
