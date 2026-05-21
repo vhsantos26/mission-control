@@ -20,20 +20,18 @@ class ClaudeCodeSource(SessionSource):
     name = "claude"
 
     def discover(self, cfg: dict) -> Iterator[Session]:
-        raw = cfg["claude_projects_dir"]
-        roots = [Path(raw)] if isinstance(raw, str) else [Path(p) for p in raw]
+        root = Path(cfg["claude_projects_dir"])
+        if not root.exists():
+            log.warning("claude_projects_dir does not exist: %s", root)
+            return
 
-        for root in roots:
-            if not root.exists():
-                log.warning("claude_projects_dir does not exist: %s", root)
+        for project_dir in sorted(root.iterdir()):
+            if not project_dir.is_dir():
                 continue
-            for project_dir in sorted(root.iterdir()):
-                if not project_dir.is_dir():
+            for jsonl in project_dir.glob("*.jsonl"):
+                try:
+                    sessions = parse_jsonl(jsonl)
+                except Exception as e:
+                    log.warning("failed to parse %s: %s", jsonl.name, e)
                     continue
-                for jsonl in project_dir.glob("*.jsonl"):
-                    try:
-                        sessions = parse_jsonl(jsonl)
-                    except Exception as e:
-                        log.warning("failed to parse %s: %s", jsonl.name, e)
-                        continue
-                    yield from sessions
+                yield from sessions

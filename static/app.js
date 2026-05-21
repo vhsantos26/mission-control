@@ -29,16 +29,6 @@ const LOCALES = {
     explainer_cache_read: "<strong>Cache Read</strong> — Tokens reused from cache (CLAUDE.md, long context). ~10× cheaper than input — high numbers here are a <em>good sign</em>.",
     explainer_cache_create: "<strong>Cache Create</strong> — First write to cache. Costs ~1.25× input. When they grow a lot, they indicate large initial prompts.",
     explainer_cost: "<strong>Cost</strong> — API pricing estimate. If you use a flat plan (Pro/Max), the real cost is your subscription — change <code>pricing_plan</code> in <code>~/.mission-control/config.json</code>.",
-    ov_sessions_cost: "Sessions",
-    ov_int_cost: "Integrations",
-    ov_total_cost: "Total (USD)",
-    ov_chart_sessions: "Sessions — last 7d",
-    ov_chart_int: "Integrations — last 7d",
-    ov_recent_calls: "Recent integration calls",
-    ov_col_when: "When",
-    ov_no_calls: "No integration calls yet.",
-    chart_recent: "Recent sessions",
-    nav_sess_overview: "Overview",
     chart_daily_work: "Daily work — Input + Output + Cache Create",
     chart_daily_cache: "Daily cache — Create vs Read",
     chart_daily_cache_sub: "(dual axis — read is typically 10–100× larger)",
@@ -47,6 +37,8 @@ const LOCALES = {
     chart_by_model: "Token usage by model",
     chart_top_tools: "Top tools",
     chart_top_tools_sub: "— invocations per tool (all filtered sessions)",
+    chart_recent: "Recent sessions",
+    chart_recent_sub: "— last 8",
     series_input: "input",
     series_output: "output",
     series_cache_create: "cache create",
@@ -96,37 +88,6 @@ const LOCALES = {
     settings_active_hint: "Sessions edited in the last 5 minutes are marked as",
     settings_edit_hint: "Edit manually; restart the dashboard to apply.",
     settings_lang_label: "Language",
-    nav_sessions_area: "Sessions",
-    nav_integrations: "Integrations",
-    section_sessions: "Sessions",
-    ext_all_sources: "All sources",
-    ext_card_calls: "Calls",
-    ext_card_input: "Input",
-    ext_card_output: "Output",
-    ext_card_cost: "Cost (USD)",
-    ext_chart_daily: "Daily calls — Input + Output",
-    ext_chart_by_source: "By source",
-    ext_chart_by_task: "Top tasks by cost",
-    ext_chart_by_agent: "Cost by agent",
-    ext_chart_by_provider: "Cost by provider",
-    ext_chart_by_model: "Cost by model",
-    ext_col_source: "Source",
-    ext_col_calls: "Calls",
-    ext_col_tokens: "Tokens",
-    ext_col_cost: "Cost",
-    ext_col_pct: "%",
-    ext_col_agent: "Agent",
-    ext_col_task: "Task",
-    ext_col_provider: "Provider",
-    ext_col_model: "Model",
-    ext_empty: "No data yet — push events to POST /api/intake/usage",
-    section_integrations: "Integrations",
-    explainer_int_calls: "<strong>Calls</strong> — Each LLM API call recorded from an external tool (one POST to /api/intake/usage = one call).",
-    explainer_int_input: "<strong>Input</strong> — Prompt tokens sent to the model.",
-    explainer_int_output: "<strong>Output</strong> — Completion tokens returned by the model.",
-    explainer_int_cost: "<strong>Cost</strong> — Calculated by the source tool using its own pricing. Cortex-routed calls use Al Jazeera's contracted rates, not public API prices.",
-    explainer_int_source: "<strong>Source</strong> — Tool that pushed this data (e.g. <code>qe-workflows</code>).",
-    explainer_int_agent: "<strong>Agent</strong> — Sub-system within the tool responsible for the call (e.g. <code>maintenance</code>, <code>validation</code>).",
   },
   pt: {
     nav_overview: "Visão Geral",
@@ -155,16 +116,6 @@ const LOCALES = {
     explainer_cache_read: "<strong>Cache Read</strong> — Tokens reutilizados de cache (CLAUDE.md, contexto longo). ~10× mais baratos que input — números altos aqui são <em>bom sinal</em>.",
     explainer_cache_create: "<strong>Cache Create</strong> — Primeira escrita ao cache. Custa ~1.25× input. Quando crescem muito, indicam prompts iniciais grandes.",
     explainer_cost: "<strong>Custo</strong> — Estimativa em pricing API. Se você usa plano flat (Pro/Max), o custo real é o da assinatura — mude <code>pricing_plan</code> em <code>~/.mission-control/config.json</code>.",
-    ov_sessions_cost: "Sessões",
-    ov_int_cost: "Integrações",
-    ov_total_cost: "Total (USD)",
-    ov_chart_sessions: "Sessões — últimos 7d",
-    ov_chart_int: "Integrações — últimos 7d",
-    ov_recent_calls: "Chamadas recentes de integração",
-    ov_col_when: "Quando",
-    ov_no_calls: "Sem chamadas de integração ainda.",
-    chart_recent: "Sessões recentes",
-    nav_sess_overview: "Visão Geral",
     chart_daily_work: "Trabalho diário — Input + Output + Cache Create",
     chart_daily_cache: "Cache diário — Create vs Read",
     chart_daily_cache_sub: "(eixo duplo — read costuma ser 10–100× maior)",
@@ -173,6 +124,8 @@ const LOCALES = {
     chart_by_model: "Uso de tokens por modelo",
     chart_top_tools: "Top tools",
     chart_top_tools_sub: "— invocações por ferramenta (todas as sessões filtradas)",
+    chart_recent: "Sessões recentes",
+    chart_recent_sub: "— últimas 8",
     series_input: "input",
     series_output: "output",
     series_cache_create: "cache create",
@@ -222,37 +175,6 @@ const LOCALES = {
     settings_active_hint: "Sessões com edição nos últimos 5 minutos são marcadas como",
     settings_edit_hint: "Editar manualmente; reiniciar o dashboard pra aplicar.",
     settings_lang_label: "Idioma",
-    nav_sessions_area: "Sessões",
-    nav_integrations: "Integrações",
-    section_sessions: "Sessões",
-    ext_all_sources: "Todas as fontes",
-    ext_card_calls: "Chamadas",
-    ext_card_input: "Input",
-    ext_card_output: "Output",
-    ext_card_cost: "Custo (USD)",
-    ext_chart_daily: "Chamadas diárias — Input + Output",
-    ext_chart_by_source: "Por fonte",
-    ext_chart_by_task: "Top tasks por custo",
-    ext_chart_by_agent: "Custo por agente",
-    ext_chart_by_provider: "Custo por provedor",
-    ext_chart_by_model: "Custo por modelo",
-    ext_col_source: "Fonte",
-    ext_col_calls: "Chamadas",
-    ext_col_tokens: "Tokens",
-    ext_col_cost: "Custo",
-    ext_col_pct: "%",
-    ext_col_agent: "Agente",
-    ext_col_task: "Task",
-    ext_col_provider: "Provedor",
-    ext_col_model: "Modelo",
-    ext_empty: "Sem dados ainda — envie eventos para POST /api/intake/usage",
-    section_integrations: "Integrações",
-    explainer_int_calls: "<strong>Chamadas</strong> — Cada chamada LLM registrada por uma ferramenta externa (um POST em /api/intake/usage = uma chamada).",
-    explainer_int_input: "<strong>Input</strong> — Tokens de prompt enviados ao modelo.",
-    explainer_int_output: "<strong>Output</strong> — Tokens de completion retornados pelo modelo.",
-    explainer_int_cost: "<strong>Custo</strong> — Calculado pela ferramenta de origem com seu próprio pricing. Chamadas via Cortex usam as taxas contratadas pela Al Jazeera, não os preços públicos de API.",
-    explainer_int_source: "<strong>Fonte</strong> — Ferramenta que enviou os dados (ex: <code>qe-workflows</code>).",
-    explainer_int_agent: "<strong>Agente</strong> — Sub-sistema dentro da ferramenta responsável pela chamada (ex: <code>maintenance</code>, <code>validation</code>).",
   },
 };
 
@@ -322,41 +244,17 @@ function qs(extra = {}) {
 }
 
 // ---------- tab switching ----------
-const _sessionFilters = document.getElementById("filter-project");
-const _modelFilter = document.getElementById("filter-model");
-const _extSourceFilter = document.getElementById("ext-filter-source");
-
-function _updateFilterVisibility(tab) {
-  const isSessions = tab === "sessions-area";
-  const isIntegrations = tab === "integrations";
-  _sessionFilters.style.display = isSessions ? "" : "none";
-  _extSourceFilter.style.display = isIntegrations ? "" : "none";
-  _modelFilter.style.display = (isSessions || isIntegrations) ? "" : "none";
-  document.getElementById("range-pills").style.display = (isSessions || isIntegrations) ? "" : "none";
-}
-
-document.querySelectorAll("header nav button").forEach((btn) => {
+document.querySelectorAll("nav button").forEach((btn) => {
   btn.addEventListener("click", () => {
     document
-      .querySelectorAll("header nav button")
+      .querySelectorAll("nav button")
       .forEach((b) => b.classList.remove("active"));
     document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
-    _updateFilterVisibility(btn.dataset.tab);
-    if (["overview", "integrations", "sessions-area"].includes(btn.dataset.tab)) {
+    if (btn.dataset.tab === "overview") {
       setTimeout(resizeAllCharts, 50);
     }
-  });
-});
-
-document.querySelectorAll(".sub-nav button").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".sub-nav button").forEach((b) => b.classList.remove("active"));
-    document.querySelectorAll(".subtab").forEach((t) => t.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById("subtab-" + btn.dataset.subtab).classList.add("active");
-    if (btn.dataset.subtab === "sess-overview") setTimeout(resizeAllCharts, 50);
   });
 });
 
@@ -512,114 +410,28 @@ async function loadModelFilter() {
   sel.value = current;
 }
 
-// ---------- overview (activity feed, always 7d) ----------
-function _ov7d() {
-  const until = new Date();
-  const since = new Date(until);
-  since.setDate(until.getDate() - 7);
-  return { since: since.toISOString(), until: until.toISOString() };
-}
-
-async function loadOvSummaryCards() {
-  const { since, until } = _ov7d();
-  const p = new URLSearchParams({ since, until }).toString();
-  const [sessR, extR] = await Promise.all([
-    fetch(`/api/overview?${p}`),
-    fetch(`/api/ext/overview?${p}`),
-  ]);
-  const sess = await sessR.json();
-  const ext = await extR.json();
-  const total = (sess.total_cost || 0) + (ext.total_cost || 0);
-  document.getElementById("ov-sum-sessions").textContent = fmtCost(sess.total_cost);
-  document.getElementById("ov-sum-int").textContent = fmtCost(ext.total_cost);
-  document.getElementById("ov-sum-total").textContent = fmtCost(total);
-}
-
-async function loadOvSessionsChart() {
-  const r = await fetch("/api/daily-cost?days=7");
-  const data = await r.json();
-  const axisFmt = (v) => v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : v;
-  chart("chart-ov-sessions").setOption({
-    grid: { left: 60, right: 20, top: 30, bottom: 30 },
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    legend: { top: 0, textStyle: { color: "#aaa" } },
-    xAxis: { type: "category", data: data.map((d) => d.day) },
-    yAxis: { type: "value", axisLabel: { formatter: axisFmt } },
-    series: [
-      { name: t("series_input"), type: "bar", stack: "tokens", data: data.map((d) => d.input_tokens), itemStyle: { color: "#4a7cff" } },
-      { name: t("series_output"), type: "bar", stack: "tokens", data: data.map((d) => d.output_tokens), itemStyle: { color: "#a06cff" } },
-    ],
-  });
-}
-
-async function loadOvIntChart() {
-  const r = await fetch("/api/ext/daily?days=7");
-  const data = await r.json();
-  if (!data.length) {
-    chart("chart-ov-int").setOption({
-      title: { text: t("ext_empty"), left: "center", top: "center", textStyle: { color: "#aaa", fontSize: 13 } },
-    });
-    return;
-  }
-  const axisFmt = (v) => v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : v;
-  chart("chart-ov-int").setOption({
-    grid: { left: 60, right: 20, top: 30, bottom: 30 },
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    legend: { top: 0, textStyle: { color: "#aaa" } },
-    xAxis: { type: "category", data: data.map((d) => d.day) },
-    yAxis: { type: "value", axisLabel: { formatter: axisFmt } },
-    series: [
-      { name: t("series_input"), type: "bar", stack: "tokens", data: data.map((d) => d.input_tokens), itemStyle: { color: "#4a7cff" } },
-      { name: t("series_output"), type: "bar", stack: "tokens", data: data.map((d) => d.output_tokens), itemStyle: { color: "#a06cff" } },
-    ],
-  });
-}
-
-async function loadOvRecentCalls() {
-  const r = await fetch("/api/ext/recent?limit=8");
-  const data = await r.json();
-  const tbody = document.getElementById("ov-recent-calls-body");
-  tbody.innerHTML = "";
-  if (!data.length) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="5" class="muted" style="padding:16px">${t("ov_no_calls")}</td>`;
-    tbody.appendChild(tr);
-    return;
-  }
-  for (const d of data) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><span class="muted">${fmtDate(d.created_at)}</span></td>
-      <td>${d.source}</td>
-      <td>${d.agent !== "_unknown" ? d.agent : '<span class="muted">—</span>'}</td>
-      <td><span class="muted">${d.task !== "_unknown" ? d.task : "—"}</span></td>
-      <td>${fmtCost(d.cost_usd)}</td>
-    `;
-    tbody.appendChild(tr);
-  }
-}
-
-async function refreshOverview() {
-  await Promise.all([
-    loadOvSummaryCards(),
-    loadOvSessionsChart(),
-    loadOvIntChart(),
-    loadRecentSessions(),
-    loadOvRecentCalls(),
-  ]);
+async function loadOverview() {
+  const r = await fetch("/api/overview" + qs());
+  const d = await r.json();
+  document.getElementById("ov-sessions").textContent = fmt(d.total_sessions);
+  document.getElementById("ov-turns").textContent = fmt(d.total_turns);
+  document.getElementById("ov-input").textContent = fmt(d.total_input_tokens);
+  document.getElementById("ov-output").textContent = fmt(d.total_output_tokens);
+  document.getElementById("ov-cache-read").textContent = fmt(d.total_cache_read_tokens);
+  document.getElementById("ov-cache-create").textContent = fmt(d.total_cache_create_tokens);
+  document.getElementById("ov-cost").textContent = fmtCost(d.total_cost);
 }
 
 async function loadDailyWork() {
   const days = filters.rangeDays || 30;
   const r = await fetch("/api/daily-cost?days=" + days + (qs() && "&" + qs().slice(1)));
   const data = await r.json();
-  const axisFmt = (v) => v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : v;
   chart("chart-daily-work").setOption({
     grid: { left: 60, right: 20, top: 30, bottom: 30 },
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
     legend: { top: 0, textStyle: { color: "#aaa" } },
     xAxis: { type: "category", data: data.map((d) => d.day) },
-    yAxis: { type: "value", axisLabel: { formatter: axisFmt } },
+    yAxis: { type: "value", axisLabel: { formatter: (v) => v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : v } },
     series: [
       { name: t("series_input"), type: "bar", stack: "tokens", data: data.map((d) => d.input_tokens), itemStyle: { color: "#4a7cff" } },
       { name: t("series_output"), type: "bar", stack: "tokens", data: data.map((d) => d.output_tokens), itemStyle: { color: "#a06cff" } },
@@ -632,7 +444,8 @@ async function loadDailyCache() {
   const days = filters.rangeDays || 30;
   const r = await fetch("/api/daily-cost?days=" + days + (qs() && "&" + qs().slice(1)));
   const data = await r.json();
-  const axisFmt = (v) => v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : v;
+  const axisFmt = (v) =>
+    v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : v;
   chart("chart-daily-cache").setOption({
     grid: { left: 60, right: 60, top: 30, bottom: 30 },
     tooltip: {
@@ -651,26 +464,56 @@ async function loadDailyCache() {
     legend: { top: 0, textStyle: { color: "#aaa" } },
     xAxis: { type: "category", data: data.map((d) => d.day) },
     yAxis: [
-      { type: "value", position: "left",  axisLabel: { color: "#ffaa3a", formatter: axisFmt }, splitLine: { lineStyle: { color: "#222" } } },
-      { type: "value", position: "right", axisLabel: { color: "#6cbf6c", formatter: axisFmt }, splitLine: { show: false } },
+      {
+        type: "value",
+        position: "left",
+        nameTextStyle: { color: "#ffaa3a" },
+        axisLabel: { color: "#ffaa3a", formatter: axisFmt },
+        splitLine: { lineStyle: { color: "#222" } },
+      },
+      {
+        type: "value",
+        position: "right",
+        nameTextStyle: { color: "#6cbf6c" },
+        axisLabel: { color: "#6cbf6c", formatter: axisFmt },
+        splitLine: { show: false },
+      },
     ],
     series: [
-      { name: t("series_cache_create"), type: "bar", yAxisIndex: 0, data: data.map((d) => d.cache_create_tokens), itemStyle: { color: "#ffaa3a" } },
-      { name: t("series_cache_read"),   type: "bar", yAxisIndex: 1, data: data.map((d) => d.cache_read_tokens),   itemStyle: { color: "#6cbf6c" } },
+      {
+        name: t("series_cache_create"),
+        type: "bar",
+        yAxisIndex: 0,
+        data: data.map((d) => d.cache_create_tokens),
+        itemStyle: { color: "#ffaa3a" },
+      },
+      {
+        name: t("series_cache_read"),
+        type: "bar",
+        yAxisIndex: 1,
+        data: data.map((d) => d.cache_read_tokens),
+        itemStyle: { color: "#6cbf6c" },
+      },
     ],
   });
 }
 
 async function loadByProject() {
   const box = document.getElementById("chart-by-project").closest(".chart-box");
+  // Tautological when filtered to a single project — hide the card entirely.
   if (filters.project.length === 1) {
     box.classList.add("hidden");
+    // Neighbor expands via CSS :has(); resize it after layout.
     requestAnimationFrame(() => charts["chart-by-model"]?.resize());
     return;
   }
   box.classList.remove("hidden");
   const r = await fetch("/api/by-project" + qs());
   const data = await r.json();
+  // Concurrent clicks can leave the canvas out of sync with the container.
+  // Wait one frame so any pending layout settles, then force a resize before
+  // drawing — otherwise ECharts may keep stale dimensions captured while the
+  // card was hidden.
   await new Promise((r) => requestAnimationFrame(r));
   const c = chart("chart-by-project");
   c.resize();
@@ -682,7 +525,7 @@ async function loadByProject() {
     yAxis: { type: "category", data: data.map((d) => d.project), axisLabel: { color: "#aaa" } },
     xAxis: { type: "value", axisLabel: { formatter: (v) => v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : v } },
     series: [
-      { name: t("series_input"),  type: "bar", data: data.map((d) => d.input_tokens),  itemStyle: { color: "#4a7cff" } },
+      { name: t("series_input"), type: "bar", data: data.map((d) => d.input_tokens), itemStyle: { color: "#4a7cff" } },
       { name: t("series_output"), type: "bar", data: data.map((d) => d.output_tokens), itemStyle: { color: "#a06cff" } },
     ],
   });
@@ -691,14 +534,25 @@ async function loadByProject() {
 async function loadByModel() {
   const r = await fetch("/api/by-model" + qs());
   const data = await r.json();
-  const pieData = data.filter((d) => d.cost > 0).map((d) => ({ name: d.model, value: Number(d.cost.toFixed(2)) }));
+  const pieData = data
+    .filter((d) => d.cost > 0)
+    .map((d) => ({ name: d.model, value: Number(d.cost.toFixed(2)) }));
   chart("chart-by-model").setOption({
-    tooltip: { trigger: "item", formatter: (p) => `${p.name}<br/>${fmtCost(p.value)} (${p.percent}%)` },
+    tooltip: {
+      trigger: "item",
+      formatter: (p) => `${p.name}<br/>${fmtCost(p.value)} (${p.percent}%)`,
+    },
     legend: { type: "scroll", orient: "vertical", right: 10, top: 20, textStyle: { color: "#aaa" } },
-    series: [{
-      type: "pie", radius: ["40%", "70%"], center: ["35%", "50%"],
-      avoidLabelOverlap: true, label: { show: false }, data: pieData,
-    }],
+    series: [
+      {
+        type: "pie",
+        radius: ["40%", "70%"],
+        center: ["35%", "50%"],
+        avoidLabelOverlap: true,
+        label: { show: false },
+        data: pieData,
+      },
+    ],
   });
 }
 
@@ -711,28 +565,36 @@ async function loadByTool() {
     });
     return;
   }
+  // Reverse so largest count appears at the TOP of the horizontal bar (yAxis renders bottom-up)
   const reversed = [...data].reverse();
   chart("chart-by-tool").setOption({
     grid: { left: 210, right: 60, top: 20, bottom: 30 },
     tooltip: {
-      trigger: "axis", axisPointer: { type: "shadow" },
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
       formatter: (p) => `${p[0].name}<br/>${fmt(p[0].value)} ${t("chart_tool_uses_in")} ${reversed[p[0].dataIndex].sessions} ${t("chart_tool_sessions_word")}`,
     },
     yAxis: {
-      type: "category", data: reversed.map((d) => d.tool_name),
-      axisLabel: { color: "#aaa", formatter: (name) => name.length > 28 ? name.slice(0, 26) + "…" : name },
+      type: "category",
+      data: reversed.map((d) => d.tool_name),
+      axisLabel: {
+        color: "#aaa",
+        // Names like "chrome-devtools__take_snapshot" overflow the gutter;
+        // truncate visually — full name is still in the tooltip.
+        formatter: (name) => (name.length > 28 ? name.slice(0, 26) + "…" : name),
+      },
     },
     xAxis: { type: "value", axisLabel: { color: "#aaa", formatter: (v) => v >= 1e3 ? (v / 1e3).toFixed(1) + "k" : v } },
-    series: [{
-      name: t("series_invocations"), type: "bar", data: reversed.map((d) => d.total_count),
-      itemStyle: { color: "#4ac4a8" },
-      label: { show: true, position: "right", color: "#aaa", formatter: (p) => fmt(p.value) },
-    }],
+    series: [
+      {
+        name: t("series_invocations"),
+        type: "bar",
+        data: reversed.map((d) => d.total_count),
+        itemStyle: { color: "#4ac4a8" },
+        label: { show: true, position: "right", color: "#aaa", formatter: (p) => fmt(p.value) },
+      },
+    ],
   });
-}
-
-async function refreshSessionsOverview() {
-  await Promise.all([loadDailyWork(), loadDailyCache(), loadByProject(), loadByModel(), loadByTool()]);
 }
 
 async function loadFeatures() {
@@ -785,7 +647,7 @@ async function loadSessions() {
 }
 
 async function loadRecentSessions() {
-  const r = await fetch("/api/sessions?limit=8");
+  const r = await fetch("/api/sessions?limit=8" + (qs() && "&" + qs().slice(1)));
   const sessions = await r.json();
   const tbody = document.getElementById("recent-sessions-body");
   tbody.innerHTML = "";
@@ -867,226 +729,22 @@ async function toggleSessionDrillDown(tr, sessionId) {
   tr.parentNode.insertBefore(detail, tr.nextElementSibling);
 }
 
-// ---------- integrations tab ----------
-const extFilters = { source: "" };
-
-function extQs(extra = {}) {
-  const { since, until } = sinceUntil();
-  const o = {};
-  if (extFilters.source) o.source = extFilters.source;
-  if (filters.model) o.model = filters.model;
-  if (since) o.since = since;
-  if (until) o.until = until;
-  return { ...o, ...extra };
-}
-
-function extQsStr(extra = {}) {
-  const params = new URLSearchParams();
-  for (const [k, v] of Object.entries(extQs(extra))) {
-    if (v != null && v !== "") params.set(k, v);
-  }
-  const s = params.toString();
-  return s ? "?" + s : "";
-}
-
-async function loadExtSources() {
-  const r = await fetch("/api/ext/sources");
-  const sources = await r.json();
-  const sel = document.getElementById("ext-filter-source");
-  const current = sel.value;
-  sel.innerHTML = `<option value="">${t("ext_all_sources")}</option>`;
-  for (const s of sources) {
-    const opt = document.createElement("option");
-    opt.value = s;
-    opt.textContent = s;
-    sel.appendChild(opt);
-  }
-  if (sources.includes(current)) sel.value = current;
-}
-
-document.getElementById("ext-filter-source").addEventListener("change", (e) => {
-  extFilters.source = e.target.value;
-  refreshExt();
-});
-
-async function loadExtOverview() {
-  const r = await fetch("/api/ext/overview" + extQsStr());
-  const d = await r.json();
-  document.getElementById("ext-calls").textContent = fmt(d.total_calls);
-  document.getElementById("ext-input").textContent = fmt(d.total_input_tokens);
-  document.getElementById("ext-output").textContent = fmt(d.total_output_tokens);
-  document.getElementById("ext-cost").textContent = fmtCost(d.total_cost);
-}
-
-async function loadExtDaily() {
-  const days = filters.rangeDays || 30;
-  const r = await fetch(`/api/ext/daily?days=${days}` + (extFilters.source ? `&source=${encodeURIComponent(extFilters.source)}` : ""));
-  const data = await r.json();
-  if (!data.length) {
-    chart("chart-ext-daily").setOption({
-      title: { text: t("ext_empty"), left: "center", top: "center", textStyle: { color: "#aaa", fontSize: 13 } },
-    });
-    return;
-  }
-  chart("chart-ext-daily").setOption({
-    grid: { left: 60, right: 20, top: 30, bottom: 30 },
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    legend: { top: 0, textStyle: { color: "#aaa" } },
-    xAxis: { type: "category", data: data.map((d) => d.day) },
-    yAxis: { type: "value", axisLabel: { formatter: (v) => v >= 1e6 ? (v / 1e6).toFixed(0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : v } },
-    series: [
-      { name: t("series_input"),  type: "bar", stack: "tokens", data: data.map((d) => d.input_tokens),  itemStyle: { color: "#4a7cff" } },
-      { name: t("series_output"), type: "bar", stack: "tokens", data: data.map((d) => d.output_tokens), itemStyle: { color: "#a06cff" } },
-    ],
-  });
-}
-
-async function loadExtBySource() {
-  const r = await fetch("/api/ext/by-source" + extQsStr());
-  const data = await r.json();
-  const tbody = document.getElementById("ext-by-source-body");
-  tbody.innerHTML = "";
-  const total = data.reduce((acc, d) => acc + (d.cost_usd || 0), 0);
-  for (const d of data) {
-    const tokens = d.input_tokens + d.output_tokens;
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${d.source}</td>
-      <td>${fmt(d.calls)}</td>
-      <td>${fmt(tokens)}</td>
-      <td>${fmtCost(d.cost_usd)}</td>
-      <td>${total ? ((d.cost_usd / total) * 100).toFixed(1) : "0"}%</td>
-    `;
-    tbody.appendChild(tr);
-  }
-  if (!data.length) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="5" class="muted" style="padding:16px">${t("ext_empty")}</td>`;
-    tbody.appendChild(tr);
-  }
-}
-
-async function loadExtByTask() {
-  const r = await fetch("/api/ext/by-task" + extQsStr());
-  const data = await r.json();
-  const tbody = document.getElementById("ext-by-task-body");
-  tbody.innerHTML = "";
-  for (const d of data) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><span class="muted">${d.source}</span></td>
-      <td>${d.agent !== '_unknown' ? d.agent : '<span class="muted">—</span>'}</td>
-      <td>${d.task}</td>
-      <td><span class="muted">${d.provider !== '_unknown' ? d.provider : '—'}</span></td>
-      <td><span class="muted">${d.model}</span></td>
-      <td>${fmt(d.calls)}</td>
-      <td>${fmtCost(d.cost_usd)}</td>
-    `;
-    tbody.appendChild(tr);
-  }
-  if (!data.length) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="5" class="muted" style="padding:16px">${t("ext_empty")}</td>`;
-    tbody.appendChild(tr);
-  }
-}
-
-async function loadExtByAgentChart() {
-  const r = await fetch("/api/ext/by-task" + extQsStr({ limit: 100 }));
-  const data = await r.json();
-  if (!data.length) return;
-  const byAgent = {};
-  for (const d of data) {
-    let key;
-    if (d.agent !== "_unknown") key = d.agent;
-    else if (d.task !== "_unknown") key = d.task;
-    else key = "(no agent)";
-    byAgent[key] = (byAgent[key] || 0) + (d.cost_usd || 0);
-  }
-  const entries = Object.entries(byAgent).sort((a, b) => a[1] - b[1]);
-  chart("chart-ext-by-agent").setOption({
-    grid: { left: 110, right: 70, top: 20, bottom: 20 },
-    tooltip: { trigger: "axis", formatter: (p) => `${p[0].name}: ${fmtCost(p[0].value)}` },
-    yAxis: { type: "category", data: entries.map((e) => e[0]), axisLabel: { color: "#aaa" } },
-    xAxis: { type: "value", axisLabel: { color: "#aaa", formatter: (v) => fmtCost(v) } },
-    series: [{
-      type: "bar",
-      data: entries.map((e) => e[1]),
-      itemStyle: { color: "#4ac4a8" },
-      label: { show: true, position: "right", color: "#aaa", formatter: (p) => fmtCost(p.value) },
-    }],
-  });
-}
-
-async function loadExtByProviderChart() {
-  const r = await fetch("/api/ext/by-task" + extQsStr({ limit: 100 }));
-  const data = await r.json();
-  if (!data.length) return;
-  const byProvider = {};
-  for (const d of data) {
-    const key = d.provider !== "_unknown" ? d.provider : "(unknown)";
-    byProvider[key] = (byProvider[key] || 0) + (d.cost_usd || 0);
-  }
-  const pieData = Object.entries(byProvider)
-    .filter(([, v]) => v > 0)
-    .map(([name, value]) => ({ name, value: Number(value.toFixed(4)) }));
-  chart("chart-ext-by-provider").setOption({
-    tooltip: { trigger: "item", formatter: (p) => `${p.name}<br/>${fmtCost(p.value)} (${p.percent}%)` },
-    legend: { type: "scroll", orient: "vertical", right: 10, top: 20, textStyle: { color: "#aaa" } },
-    series: [{
-      type: "pie", radius: ["40%", "70%"], center: ["35%", "50%"],
-      avoidLabelOverlap: true, label: { show: false }, data: pieData,
-    }],
-  });
-}
-
-async function loadExtByModelChart() {
-  const r = await fetch("/api/ext/by-task" + extQsStr({ limit: 100 }));
-  const data = await r.json();
-  if (!data.length) return;
-  const byModel = {};
-  for (const d of data) {
-    const key = d.model !== "_unknown" ? d.model : "(unknown)";
-    byModel[key] = (byModel[key] || 0) + (d.cost_usd || 0);
-  }
-  const pieData = Object.entries(byModel)
-    .filter(([, v]) => v > 0)
-    .map(([name, value]) => ({ name, value: Number(value.toFixed(4)) }));
-  chart("chart-ext-by-model").setOption({
-    tooltip: { trigger: "item", formatter: (p) => `${p.name}<br/>${fmtCost(p.value)} (${p.percent}%)` },
-    legend: { type: "scroll", orient: "vertical", right: 10, top: 20, textStyle: { color: "#aaa" } },
-    series: [{
-      type: "pie", radius: ["40%", "70%"], center: ["35%", "50%"],
-      avoidLabelOverlap: true, label: { show: false }, data: pieData,
-    }],
-  });
-}
-
-async function refreshExt() {
-  await Promise.all([
-    loadExtOverview(),
-    loadExtDaily(),
-    loadExtBySource(),
-    loadExtByTask(),
-    loadExtByAgentChart(),
-    loadExtByProviderChart(),
-    loadExtByModelChart(),
-  ]);
-}
-
 async function refresh() {
   await Promise.all([
-    refreshOverview(),
-    refreshSessionsOverview(),
+    loadOverview(),
+    loadDailyWork(),
+    loadDailyCache(),
+    loadByProject(),
+    loadByModel(),
+    loadByTool(),
+    loadRecentSessions(),
     loadFeatures(),
     loadSessions(),
     loadProjectsTab(),
-    refreshExt(),
   ]);
 }
 
 applyLang();
 document.getElementById("lang-select").value = lang;
-_updateFilterVisibility("overview");
-Promise.all([loadProjectFilter(), loadModelFilter(), loadExtSources()]).then(refresh);
+Promise.all([loadProjectFilter(), loadModelFilter()]).then(refresh);
 setInterval(refresh, 30_000);

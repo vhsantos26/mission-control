@@ -20,7 +20,7 @@ header h1 {
   font-weight: 600;
   letter-spacing: 0.04em;
 }
-nav { display: flex; gap: 4px; align-items: center; }
+nav { display: flex; gap: 4px; }
 nav button {
   background: transparent;
   color: #aaa;
@@ -32,27 +32,6 @@ nav button {
 }
 nav button:hover { color: #fff; background: #1a1a1d; }
 nav button.active { color: #fff; background: #2a2a2e; }
-.sub-nav {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid #2a2a2e;
-  margin-bottom: 20px;
-}
-.sub-nav button {
-  background: transparent;
-  color: #888;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 8px 16px;
-  margin-bottom: -1px;
-  cursor: pointer;
-  font-size: 13px;
-  font-family: inherit;
-}
-.sub-nav button:hover { color: #fff; }
-.sub-nav button.active { color: #fff; border-bottom-color: #4a7cff; }
-.subtab { display: none; }
-.subtab.active { display: block; }
 .filters {
   display: flex;
   gap: 8px;
@@ -208,17 +187,16 @@ main { padding: 24px; }
 .chart { height: 280px; }
 .chart-tall { height: 360px; }
 .toolbar { margin-bottom: 12px; }
-.toolbar input, .toolbar select {
+.toolbar input {
   background: #18181b;
   color: #eaeaea;
   border: 1px solid #2a2a2e;
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: 6px;
   font-size: 13px;
+  width: 320px;
   font-family: inherit;
 }
-.toolbar input { width: 320px; padding: 8px 12px; }
-.toolbar select:hover, .toolbar input:hover { border-color: #3a3a3e; }
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 table.compact th, table.compact td { padding: 6px 10px; font-size: 13px; }
 th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #2a2a2e; }
@@ -260,30 +238,3 @@ a { color: #4a7cff; text-decoration: none; }
 a:hover { text-decoration: underline; }
 .settings-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .settings-row label { font-size: 0.9rem; color: #aaa; min-width: 80px; }
-.section-block { margin-bottom: 20px; }
-.section-block > summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 0;
-  cursor: pointer;
-  color: #777;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  user-select: none;
-  border-bottom: 1px solid #2a2a2e;
-  margin-bottom: 16px;
-  list-style: none;
-}
-.section-block > summary::-webkit-details-marker { display: none; }
-.section-block > summary::before {
-  content: "▼";
-  font-size: 8px;
-  color: #555;
-  display: inline-block;
-  transition: transform 0.15s;
-}
-.section-block:not([open]) > summary::before { transform: rotate(-90deg); }
-.section-block > summary:hover { color: #bbb; }
