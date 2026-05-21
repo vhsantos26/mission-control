@@ -18,7 +18,7 @@ from src.sources import ClaudeCodeSource, CodexSource, SessionSource
 # canonicalization runs uniformly downstream. Add a new tool here.
 SOURCES: list[SessionSource] = [ClaudeCodeSource(), CodexSource()]
 
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 
 log = logging.getLogger("mc.cli")
 
