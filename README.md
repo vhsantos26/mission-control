@@ -195,7 +195,7 @@ python3 -m pytest tests/ -v
 ## Known limitations
 
 - **Cost is estimated** using Anthropic API pricing (Jan 2026). If you're on a flat-rate plan (Pro / Max / Max-20x), set `pricing_plan` to that value in `~/.mission-control/config.json` and all sessions show `$0`.
-- **PR enrichment** requires `gh` CLI authenticated to the right org; it currently runs only via the INDEX.md generator in the Example App repo, not yet wired into the dashboard scan.
+- **PR enrichment** requires `gh` CLI authenticated to the right org; it currently runs only via the INDEX.md generator in a sibling repo, not yet wired into the dashboard scan.
 
 ## Changelog
 
