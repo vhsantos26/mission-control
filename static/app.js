@@ -109,6 +109,7 @@ const LOCALES = {
     ext_chart_by_task: "Top tasks by cost",
     ext_chart_by_agent: "Cost by agent",
     ext_chart_by_provider: "Cost by provider",
+    ext_chart_by_model: "Cost by model",
     ext_col_source: "Source",
     ext_col_calls: "Calls",
     ext_col_tokens: "Tokens",
@@ -234,6 +235,7 @@ const LOCALES = {
     ext_chart_by_task: "Top tasks por custo",
     ext_chart_by_agent: "Custo por agente",
     ext_chart_by_provider: "Custo por provedor",
+    ext_chart_by_model: "Custo por modelo",
     ext_col_source: "Fonte",
     ext_col_calls: "Chamadas",
     ext_col_tokens: "Tokens",
@@ -1032,12 +1034,30 @@ async function loadExtByProviderChart() {
     tooltip: { trigger: "item", formatter: (p) => `${p.name}<br/>${fmtCost(p.value)} (${p.percent}%)` },
     legend: { type: "scroll", orient: "vertical", right: 10, top: 20, textStyle: { color: "#aaa" } },
     series: [{
-      type: "pie",
-      radius: ["40%", "70%"],
-      center: ["35%", "50%"],
-      avoidLabelOverlap: true,
-      label: { show: false },
-      data: pieData,
+      type: "pie", radius: ["40%", "70%"], center: ["35%", "50%"],
+      avoidLabelOverlap: true, label: { show: false }, data: pieData,
+    }],
+  });
+}
+
+async function loadExtByModelChart() {
+  const r = await fetch("/api/ext/by-task" + extQsStr({ limit: 100 }));
+  const data = await r.json();
+  if (!data.length) return;
+  const byModel = {};
+  for (const d of data) {
+    const key = d.model !== "_unknown" ? d.model : "(unknown)";
+    byModel[key] = (byModel[key] || 0) + (d.cost_usd || 0);
+  }
+  const pieData = Object.entries(byModel)
+    .filter(([, v]) => v > 0)
+    .map(([name, value]) => ({ name, value: Number(value.toFixed(4)) }));
+  chart("chart-ext-by-model").setOption({
+    tooltip: { trigger: "item", formatter: (p) => `${p.name}<br/>${fmtCost(p.value)} (${p.percent}%)` },
+    legend: { type: "scroll", orient: "vertical", right: 10, top: 20, textStyle: { color: "#aaa" } },
+    series: [{
+      type: "pie", radius: ["40%", "70%"], center: ["35%", "50%"],
+      avoidLabelOverlap: true, label: { show: false }, data: pieData,
     }],
   });
 }
@@ -1050,6 +1070,7 @@ async function refreshExt() {
     loadExtByTask(),
     loadExtByAgentChart(),
     loadExtByProviderChart(),
+    loadExtByModelChart(),
   ]);
 }
 
