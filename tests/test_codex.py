@@ -93,7 +93,7 @@ def test_extracts_branch_and_cwd_from_session_meta():
     sessions = parse_codex_jsonl(FIXTURE)
     s = sessions[0]
     assert s.dominant_branch == "feat/codex-source"
-    assert s.dominant_cwd == "/Users/hugo/Developer/mission-control"
+    assert s.dominant_cwd == "/Users/dev/Developer/mission-control"
 
 
 def test_extracts_model_from_turn_context():

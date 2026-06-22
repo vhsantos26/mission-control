@@ -113,7 +113,7 @@ def test_canonical_project_preserves_hyphens_in_name(tmp_path):
 def test_canonical_project_strips_singular_worktree_marker(tmp_path):
     # Some repos use .worktree (singular) instead of .worktrees (plural)
     import subprocess
-    repo = tmp_path / "ump"
+    repo = tmp_path / "myapp"
     repo.mkdir()
     subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "config", "user.email", "t@t.com"], check=True)
@@ -126,4 +126,4 @@ def test_canonical_project_strips_singular_worktree_marker(tmp_path):
         ["git", "-C", str(repo), "worktree", "add", "-q", "--detach", str(wt)],
         check=True,
     )
-    assert canonical_project(str(wt)) == "ump"
+    assert canonical_project(str(wt)) == "myapp"

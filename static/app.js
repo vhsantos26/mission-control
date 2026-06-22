@@ -1,5 +1,5 @@
 // ---------- i18n ----------
-let lang = localStorage.getItem("mc_lang") || "en";
+const lang = "en";
 
 const LOCALES = {
   en: {
@@ -87,94 +87,6 @@ const LOCALES = {
     settings_config_hint: "Pricing plan and thresholds come from <code>~/.mission-control/config.json</code>.",
     settings_active_hint: "Sessions edited in the last 5 minutes are marked as",
     settings_edit_hint: "Edit manually; restart the dashboard to apply.",
-    settings_lang_label: "Language",
-  },
-  pt: {
-    nav_overview: "Visão Geral",
-    nav_features: "Features",
-    nav_sessions: "Sessões",
-    nav_projects: "Projetos",
-    nav_settings: "Configurações",
-    filter_all_projects: "Todos os projetos",
-    filter_clear_projects: "Limpar seleção",
-    filter_one_project: "1 projeto",
-    filter_n_projects: "{n} projetos",
-    filter_all_models: "Todos os modelos",
-    card_sessions: "Sessões",
-    card_turns: "Turns",
-    card_input: "Input",
-    card_output: "Output",
-    card_cache_read: "Cache Read",
-    card_cache_create: "Cache Create",
-    card_cost: "Custo (USD)",
-    explainer_summary: "O que esses números significam?",
-    explainer_expand: "— clique para expandir",
-    explainer_sessions: "<strong>Sessões</strong> — Conversas Claude Code distintas (1 JSONL = 1 sessão).",
-    explainer_turns: "<strong>Turns</strong> — Quantidade de prompts (user → assistant pairs) no período.",
-    explainer_input: "<strong>Input</strong> — Tokens enviados ao modelo. Pricing baseline.",
-    explainer_output: "<strong>Output</strong> — Tokens gerados. Geralmente 5× mais caros que input.",
-    explainer_cache_read: "<strong>Cache Read</strong> — Tokens reutilizados de cache (CLAUDE.md, contexto longo). ~10× mais baratos que input — números altos aqui são <em>bom sinal</em>.",
-    explainer_cache_create: "<strong>Cache Create</strong> — Primeira escrita ao cache. Custa ~1.25× input. Quando crescem muito, indicam prompts iniciais grandes.",
-    explainer_cost: "<strong>Custo</strong> — Estimativa em pricing API. Se você usa plano flat (Pro/Max), o custo real é o da assinatura — mude <code>pricing_plan</code> em <code>~/.mission-control/config.json</code>.",
-    chart_daily_work: "Trabalho diário — Input + Output + Cache Create",
-    chart_daily_cache: "Cache diário — Create vs Read",
-    chart_daily_cache_sub: "(eixo duplo — read costuma ser 10–100× maior)",
-    cache_ratio_label: "Razão",
-    chart_by_project: "Tokens por projeto — Input vs Output",
-    chart_by_model: "Uso de tokens por modelo",
-    chart_top_tools: "Top tools",
-    chart_top_tools_sub: "— invocações por ferramenta (todas as sessões filtradas)",
-    chart_recent: "Sessões recentes",
-    chart_recent_sub: "— últimas 8",
-    series_input: "input",
-    series_output: "output",
-    series_cache_create: "cache create",
-    series_cache_read: "cache read",
-    series_invocations: "invocações",
-    chart_tool_empty: "Sem dados de tool_use ainda — re-rodar `cli.py scan` após upgrade pra v0.5",
-    chart_tool_uses_in: "usos em",
-    chart_tool_sessions_word: "sessões",
-    badge_active: "Ativa",
-    recent_start: "Início",
-    recent_project: "Projeto",
-    recent_feature: "Feature",
-    recent_model: "Modelo",
-    recent_tokens: "Tokens",
-    recent_cost: "Custo",
-    feat_search_placeholder: "Filtrar por nome de feature…",
-    feat_project: "Projeto",
-    feat_feature: "Feature",
-    feat_first: "Primeira",
-    feat_last: "Última",
-    feat_tokens: "Tokens",
-    feat_cost: "Custo",
-    feat_pr: "PR",
-    sess_session: "Sessão",
-    sess_project: "Projeto",
-    sess_feature: "Feature",
-    sess_branch: "Branch",
-    sess_model: "Modelo",
-    sess_start: "Início",
-    sess_tokens: "Tokens",
-    sess_cost: "Custo",
-    prompts_empty: "Sem prompts registrados.",
-    prompts_when: "Quando",
-    prompts_role: "Role",
-    prompts_input: "Input",
-    prompts_output: "Output",
-    prompts_cache_r: "Cache R",
-    prompts_cache_c: "Cache C",
-    prompts_cost: "Custo",
-    proj_project: "Projeto",
-    proj_sessions: "Sessões",
-    proj_tokens: "Tokens",
-    proj_cost: "Custo",
-    proj_pct: "% do total",
-    settings_title: "Configurações",
-    settings_config_hint: "Pricing plan e thresholds vêm de <code>~/.mission-control/config.json</code>.",
-    settings_active_hint: "Sessões com edição nos últimos 5 minutos são marcadas como",
-    settings_edit_hint: "Editar manualmente; reiniciar o dashboard pra aplicar.",
-    settings_lang_label: "Idioma",
   },
 };
 
@@ -183,7 +95,7 @@ function t(key) {
 }
 
 function applyLang() {
-  document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
+  document.documentElement.lang = "en";
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     el.textContent = t(el.dataset.i18n);
   });
@@ -198,7 +110,7 @@ function applyLang() {
 // ---------- formatters ----------
 function fmt(n) {
   if (n == null) return "—";
-  return Number(n).toLocaleString(lang === "pt" ? "pt-BR" : "en-US");
+  return Number(n).toLocaleString("en-US");
 }
 const fmtCost = (n) =>
   n == null ? "—" : "$" + Number(n).toFixed(Number(n) < 1 ? 4 : 2);
@@ -306,16 +218,6 @@ document.querySelectorAll("#range-pills button").forEach((btn) => {
     filters.rangeDays = Number(btn.dataset.range);
     refresh();
   });
-});
-
-document.getElementById("lang-select").addEventListener("change", (e) => {
-  lang = e.target.value;
-  localStorage.setItem("mc_lang", lang);
-  applyLang();
-  loadProjectFilter();
-  loadModelFilter();
-  updateProjectLabel();
-  refresh();
 });
 
 document.getElementById("features-search").addEventListener("input", (e) => {
@@ -745,6 +647,5 @@ async function refresh() {
 }
 
 applyLang();
-document.getElementById("lang-select").value = lang;
 Promise.all([loadProjectFilter(), loadModelFilter()]).then(refresh);
 setInterval(refresh, 30_000);

@@ -97,7 +97,7 @@ def test_dominant_cwd_picks_most_frequent():
     sessions = parse_jsonl(FIXTURE)
     s = sessions[0]
     assert s.dominant_cwd == (
-        "/Users/hugo/Developer/example-app/.worktrees/multi-agent-setup"
+        "/Users/dev/Developer/example-app/.worktrees/multi-agent-setup"
     )
 
 
